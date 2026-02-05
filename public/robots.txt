@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+# This tells all search engines that they are allowed to crawl every page on the site.
+
+# The sitemap location tells them where to find the list of all pages.
+Sitemap: https://suryawavebackend.vercel.app/sitemap.xml
