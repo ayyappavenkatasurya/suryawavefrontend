@@ -16,7 +16,7 @@ import rehypeRaw from 'rehype-raw';
 import Fuse from 'fuse.js';
 import { LazyImage } from '../components/LazyImage';
 
-// ... [ServicePagePreview and CustomProjectForm components remain unchanged] ...
+// Custom Components for ReactMarkdown
 const markdownComponents = {
     ul: ({node, ...props}) => <ul className="list-disc list-outside ml-6 space-y-2 text-gray-700 my-4" {...props} />,
     ol: ({node, ...props}) => <ol className="list-decimal list-outside ml-6 space-y-2 text-gray-700 my-4" {...props} />,
@@ -75,7 +75,15 @@ export const ServicePagePreview = ({ service, onPurchase, isOwned }) => {
                 </ReactMarkdown>
             </div>
         );
-        case 'image': return <LazyImage key={index} src={block.url || 'https://via.placeholder.com/800x400?text=Image+Preview'} alt={block.alt || 'Service Image'} className="my-6 rounded-lg shadow-md w-full h-auto" />;
+        case 'image': return (
+            // ✅ FIXED: Removed 'shadow-md' and border/bg classes to remove the surrounding box
+            <LazyImage 
+                key={index} 
+                src={block.url || 'https://via.placeholder.com/800x400?text=Image+Preview'} 
+                alt={block.alt || 'Service Image'} 
+                className="my-6 w-full h-auto rounded-lg" // Kept rounded-lg for image corners only
+            />
+        );
         case 'file': return (<div key={index} className="my-4 p-4 border rounded-lg bg-gray-50"><a href={block.url || '#'} target="_blank" rel="noopener noreferrer" className="font-medium text-google-blue hover:underline flex items-center gap-3">{block.iconUrl && <img src={block.iconUrl} alt="" className="w-6 h-6 object-contain" />}<span>{block.value || 'Sample File'}</span></a></div>);
         case 'purchaseButton': return (
             <div key={index} className="my-8 text-center">
@@ -347,15 +355,13 @@ export const ServicesPage = () => {
     );
 };
 
-// ... [ServiceDetailPage, AboutPage, ContactPage, PrivacyPolicyPage, TermsOfServicePage unchanged] ...
-// ========== SERVICE DETAIL PAGE ==========
+// ... [ServiceDetailPage, AboutPage, ContactPage, PrivacyPolicyPage, TermsOfServicePage remain the same as the previous correct version] ...
 export const ServiceDetailPage = () => {
     const { slug } = useParams();
     const { user, refreshUser } = useAuth();
     const navigate = useNavigate();
     const { pathname } = useLocation();
   
-    // Fetch Service Detail with React Query
     const { data: service, isLoading, isError } = useQuery({
         queryKey: ['service', slug],
         queryFn: async () => {
@@ -505,7 +511,6 @@ export const ServiceDetailPage = () => {
     );
 };
 
-// ========== ABOUT PAGE ==========
 export const AboutPage = () => {
     const { pathname } = useLocation();
     const aboutPageSchema = {
@@ -565,7 +570,6 @@ export const AboutPage = () => {
     );
 };
 
-// ========== CONTACT PAGE ==========
 export const ContactPage = () => {
     const { pathname } = useLocation();
     const contactPageSchema = {
@@ -617,7 +621,6 @@ export const ContactPage = () => {
     );
 };
 
-// ========== PRIVACY POLICY PAGE ==========
 export const PrivacyPolicyPage = () => {
     const { pathname } = useLocation();
     const lastUpdated = "October 24, 2025";
@@ -641,7 +644,6 @@ export const PrivacyPolicyPage = () => {
     );
 };
 
-// ========== TERMS OF SERVICE PAGE ==========
 export const TermsOfServicePage = () => {
     const { pathname } = useLocation();
     const lastUpdated = "October 24, 2025";
