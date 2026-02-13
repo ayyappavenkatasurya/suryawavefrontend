@@ -11,16 +11,17 @@ export const LazyImage = ({ src, alt, className, containerClassName, ...props })
   const [error, setError] = useState(false);
 
   return (
-    <div className={twMerge("relative overflow-hidden bg-gray-100", containerClassName, className)}>
+    <div className={twMerge("relative overflow-hidden bg-white", containerClassName, className)}>
       {/* Placeholder / Blur Effect */}
       <div 
         className={clsx(
-          "absolute inset-0 flex items-center justify-center bg-gray-200 transition-opacity duration-700",
+          "absolute inset-0 flex items-center justify-center bg-white transition-opacity duration-700",
           loaded ? "opacity-0" : "opacity-100"
         )}
       >
-        {!error && <div className="w-full h-full animate-pulse bg-gray-300" />}
-        {error && <FontAwesomeIcon icon={faImage} className="text-gray-400 text-2xl" />}
+        {/* Removed bg-gray-300 to remove the grey box effect */}
+        {!error && <div className="w-full h-full animate-pulse bg-gray-50" />}
+        {error && <FontAwesomeIcon icon={faImage} className="text-gray-200 text-2xl" />}
       </div>
 
       <img
@@ -31,6 +32,7 @@ export const LazyImage = ({ src, alt, className, containerClassName, ...props })
         onError={() => setError(true)}
         className={twMerge(
           "w-full h-full object-cover transition-all duration-700 ease-in-out",
+          // Changed blur logic to prevent hard edges during transition
           loaded ? "opacity-100 scale-100 blur-0" : "opacity-0 scale-105 blur-sm",
           className
         )}

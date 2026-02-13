@@ -137,7 +137,7 @@ export const PwaReloadPrompt = () => {
   return null;
 };
 
-// ========== SEO COMPONENT (UPDATED) ==========
+// ========== SEO COMPONENT (UPDATED FOR INDEXING) ==========
 export const SEO = ({ title, description, keywords, image, path, children }) => {
   // Primary domain for Canonical URLs (Best for SEO to avoid duplicates)
   const primaryUrl = 'https://suryawave.me';
@@ -145,7 +145,9 @@ export const SEO = ({ title, description, keywords, image, path, children }) => 
   // Current Origin for OG Image generation if relative
   const currentOrigin = typeof window !== 'undefined' ? window.location.origin : primaryUrl;
 
-  const canonicalUrl = `${primaryUrl}${path}`;
+  // ✅ FIXED: Remove trailing slash from path to avoid "Page with redirect" errors
+  const cleanPath = path === '/' ? '' : path.replace(/\/$/, '');
+  const canonicalUrl = `${primaryUrl}${cleanPath}`;
   
   // Robust image URL handling
   const imageUrl = image 
@@ -158,7 +160,7 @@ export const SEO = ({ title, description, keywords, image, path, children }) => 
       <meta name='description' content={description} />
       <meta name='keywords' content={`Surya Wave, Surya Nallamothu, GATE 2026, Final Year Projects, ${keywords}`} />
       
-      {/* Canonical always points to primary domain */}
+      {/* Canonical always points to primary domain without trailing slash */}
       <link rel="canonical" href={canonicalUrl} />
       
       <meta property="og:type" content="website" />
@@ -177,7 +179,7 @@ export const SEO = ({ title, description, keywords, image, path, children }) => 
   );
 };
 
-// ... [Rest of components.jsx remains unchanged: Header, Footer, ProtectedRoute, etc.] ...
+// ... [Rest of components.jsx remains unchanged] ...
 export const Header = React.memo(() => {
   const { user, logout } = useAuth();
   const { installPrompt, triggerInstall } = usePwaInstall();

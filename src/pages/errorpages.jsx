@@ -1,3 +1,5 @@
+// frontend/src/pages/errorpages.jsx
+
 import React from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { SEO } from '../components';
@@ -6,7 +8,10 @@ export const NotFoundPage = () => {
     const { pathname } = useLocation();
     return (
         <>
-        <SEO title="404 Not Found" description="The page you are looking for does not exist." keywords="404, not found, error" path={pathname}/>
+        <SEO title="404 Not Found" description="The page you are looking for does not exist." keywords="404, not found, error" path={pathname}>
+            {/* ✅ FIXED: Tell Google NOT to index this page to fix Soft 404 errors in GSC */}
+            <meta name="robots" content="noindex" />
+        </SEO>
         <div className="container mx-auto text-center py-20 px-4 sm:px-6 lg:px-8">
             <h1 className="text-6xl font-bold text-google-blue">404</h1>
             <p className="text-2xl mt-4">Page Not Found</p>
