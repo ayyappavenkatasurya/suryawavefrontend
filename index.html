@@ -2,17 +2,17 @@
 <html lang="en">
   <head>
     <!-- Google Tag Manager -->
-<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-})(window,document,'script','dataLayer','GTM-K5XTLFZJ');</script>
-<!-- End Google Tag Manager -->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer','GTM-K5XTLFZJ');</script>
+    <!-- End Google Tag Manager -->
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/logo.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     
-    <!-- 🚀 PERFORMANCE: Preconnect and load Google Fonts efficiently -->
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
@@ -33,12 +33,69 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     <meta property="og:image" content="https://suryawave.me/og-image.png" />
     <meta property="og:url" content="https://suryawave.me/" />
 
+    <!-- ✅ Splash Screen Styles -->
+    <style>
+      #splash-screen {
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background-color: #fff;
+        transition: opacity 0.5s ease-out;
+        font-family: 'Roboto', sans-serif;
+      }
+      .splash-fade-out {
+        opacity: 0;
+      }
+      #splash-screen .logo-container {
+        animation: splash-fade-in 0.8s ease-out forwards;
+      }
+      #splash-screen .text-container {
+        opacity: 0;
+        animation: splash-fade-in 0.5s 0.5s ease-out forwards;
+      }
+      #splash-screen h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #4285F4;
+        margin-top: 1.5rem;
+      }
+      #splash-screen h1 span {
+        color: #1f2937;
+      }
+      #splash-screen p {
+        font-size: 0.875rem;
+        color: #6b7280;
+        margin-top: 0.5rem;
+        font-weight: 500;
+        letter-spacing: 0.05em;
+      }
+      @keyframes splash-fade-in {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+    </style>
   </head>
   <body>
+    <!-- ✅ Splash Screen HTML -->
+    <div id="splash-screen">
+      <div class="logo-container">
+        <img src="/logo.png" alt="Surya Wave" style="width: 6rem; height: 6rem; object-fit: contain;" />
+      </div>
+      <div class="text-container">
+        <h1>Surya<span>wave</span></h1>
+        <p>Quality Digital Services</p>
+      </div>
+    </div>
+
     <!-- Google Tag Manager (noscript) -->
-<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-K5XTLFZJ"
-height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-<!-- End Google Tag Manager (noscript) -->
+    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-K5XTLFZJ"
+    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+    
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

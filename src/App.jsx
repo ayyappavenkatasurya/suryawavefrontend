@@ -1,6 +1,6 @@
 // frontend/src/App.jsx
 
-import React, { Suspense, useEffect, useState } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
 import { 
@@ -10,8 +10,7 @@ import {
   AdminRoute, 
   Spinner, 
   BottomNav, 
-  PwaReloadPrompt, 
-  SplashScreen 
+  PwaReloadPrompt 
 } from './components';
 import { onMessageListener, requestForToken } from './firebase.jsx';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -94,15 +93,21 @@ const AnimatedRoutes = () => {
 
 function App() {
   const { user } = useAuth();
-  const [showSplash, setShowSplash] = useState(true);
 
-  // Splash Screen Logic
+  // ✅ Splash Screen Logic using direct DOM manipulation
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowSplash(false);
-    }, 2500); // 2.5 seconds
-
-    return () => clearTimeout(timer);
+    const splash = document.getElementById('splash-screen');
+    if (splash) {
+      // Start fading out after 2 seconds
+      setTimeout(() => {
+        splash.classList.add('splash-fade-out');
+        
+        // After fade-out animation is complete (500ms), remove from DOM
+        setTimeout(() => {
+          splash.remove();
+        }, 500);
+      }, 2000); 
+    }
   }, []);
   
   // Handle foreground notification messages
@@ -237,26 +242,11 @@ function App() {
     }
   }, [user]);
 
-  // If splash is active, only render the splash screen
-  if (showSplash) {
-    return (
-      <AnimatePresence mode="wait">
-        <SplashScreen key="splash" />
-      </AnimatePresence>
-    );
-  }
-
-  // After splash, render the main application
   return (
     <Router>
       <Toaster position="top-center" reverseOrder={false} />
       <PwaReloadPrompt />
-      <motion.div 
-        className="flex flex-col min-h-screen"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
-      >
+      <div className="flex flex-col min-h-screen">
         <Header />
         <main className="flex-grow pb-20 md:pb-0">
           <Suspense fallback={<Spinner />}>
@@ -265,7 +255,7 @@ function App() {
         </main>
         <Footer />
         <BottomNav />
-      </motion.div>
+      </div>
     </Router>
   );
 }

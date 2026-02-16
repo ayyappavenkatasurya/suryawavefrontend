@@ -4,4 +4,3 @@ export * from './LayoutComponents';
 export * from './FeedbackComponents';
 export * from './ContentComponents';
 export * from './LazyImage';
-export * from './SplashScreen';
