@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSearch } from '@fortawesome/free-solid-svg-icons';
 import Fuse from 'fuse.js';
@@ -98,20 +98,27 @@ export const ServicesPage = () => {
                     <FontAwesomeIcon icon={faSearch} className="absolute left-4 top-4 text-gray-400" />
                 </div>
 
+                {/* YouTube Style Loading Implementation */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {servicesLoading ? (
-                        Array.from({ length: 6 }).map((_, i) => <ServiceCardSkeleton key={i} />)
-                    ) : filteredServices.length > 0 ? (
-                        filteredServices.map((service, index) => (
-                            <motion.div
-                                key={service._id}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: index * 0.05, duration: 0.3 }}
-                            >
-                                <ServiceCard service={service} />
-                            </motion.div>
+                        // Show skeletons while loading
+                        Array.from({ length: 6 }).map((_, i) => (
+                            <ServiceCardSkeleton key={i} />
                         ))
+                    ) : filteredServices.length > 0 ? (
+                        // Animate actual content in
+                        <AnimatePresence>
+                            {filteredServices.map((service, index) => (
+                                <motion.div
+                                    key={service._id}
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    transition={{ duration: 0.3, ease: "easeOut" }}
+                                >
+                                    <ServiceCard service={service} />
+                                </motion.div>
+                            ))}
+                        </AnimatePresence>
                     ) : (
                         <div className="col-span-full text-center text-gray-500 py-8">
                             No services found matching "{searchQuery}".
@@ -119,7 +126,7 @@ export const ServicesPage = () => {
                     )}
                 </div>
                 
-                <PeopleAlsoAsk faqs={faqs} />
+                {!servicesLoading && <PeopleAlsoAsk faqs={faqs} />}
             </div>
         </>
     );

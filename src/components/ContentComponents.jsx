@@ -102,18 +102,8 @@ export const ServiceCard = React.memo(({ service }) => {
   const isFree = service.currentPrice === 0;
   const [isSharing, setIsSharing] = useState(false);
 
-  // ✅ FEATURE: Format Order Count "10+"
-  const formatOrderCount = (count) => {
-    if (!count || count < 5) return null;
-    if (count < 10) return "5+ bought";
-    if (count < 50) return "10+ bought";
-    if (count < 100) return "50+ bought";
-    if (count < 500) return "100+ bought";
-    if (count < 1000) return "500+ bought";
-    return "1k+ bought";
-  };
-
-  const orderBadge = formatOrderCount(service.orderCount);
+  // ✅ FEATURE: Display calculated orders (Backend sends Real Count + 6)
+  const orderBadgeText = service.orderCount ? `${service.orderCount}+ ordered` : null;
 
   const handleShareClick = async (e) => {
     e.preventDefault();
@@ -166,11 +156,11 @@ export const ServiceCard = React.memo(({ service }) => {
             )}
           </div>
           
-          {/* ✅ FEATURE: Order Count Badge */}
-          {orderBadge && (
-             <div className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-sm text-white text-[10px] font-medium px-2 py-0.5 rounded-full flex items-center gap-1">
-                <FontAwesomeIcon icon={faFire} className="text-orange-400" />
-                {orderBadge}
+          {/* ✅ FEATURE: Order Count Badge (e.g. "11+ ordered") */}
+          {orderBadgeText && (
+             <div className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-sm text-white text-[10px] font-medium px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
+                <FontAwesomeIcon icon={faFire} className="text-orange-400 text-xs" />
+                {orderBadgeText}
              </div>
           )}
         </div>

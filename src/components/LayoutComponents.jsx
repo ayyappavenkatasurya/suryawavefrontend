@@ -6,7 +6,7 @@ import { useAuth, usePwaInstall } from '../context';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faDownload, faEllipsisVertical, faTachometerAlt, 
-  faLayerGroup, faNewspaper, faUser, faHome
+  faLayerGroup, faNewspaper, faUser
 } from '@fortawesome/free-solid-svg-icons';
 import { faLinkedin, faYoutube, faInstagram } from '@fortawesome/free-brands-svg-icons';
 import toast from 'react-hot-toast';
@@ -230,40 +230,57 @@ export const Header = React.memo(() => {
 });
 Header.displayName = 'Header';
 
-// --- Bottom Navigation (MNC App Style) ---
+// --- Bottom Navigation (Original Pill Style) ---
 
 export const BottomNav = () => {
   const { user } = useAuth();
 
-  // Helper to construct MNC-style Nav Items
-  const NavItem = ({ to, icon, label, exact = false }) => (
+  const getInitials = (email) => {
+    if (!email) return '';
+    return email.substring(0, 2).toUpperCase();
+  };
+
+  const NavItem = ({ to, icon, label }) => (
     <NavLink 
       to={to} 
-      end={exact}
-      className={({ isActive }) => 
-        `flex flex-col items-center justify-center w-full py-1.5 transition-colors duration-200 ${isActive ? 'text-google-blue' : 'text-gray-500 hover:text-gray-700'}`
-      }
+      className="flex flex-col items-center justify-center w-full py-1 text-xs"
     >
       {({ isActive }) => (
         <>
-          <div className={`mb-0.5 relative ${isActive ? '-mt-1' : ''} transition-all duration-300`}>
-            <FontAwesomeIcon icon={icon} className={`text-xl ${isActive ? 'transform scale-110' : ''}`} />
+          <div className={`flex items-center justify-center h-8 w-16 rounded-full transition-all duration-200 ease-in-out active:scale-90 ${isActive ? 'bg-blue-100' : 'bg-transparent'}`}>
+            <FontAwesomeIcon icon={icon} size="lg" className={`transition-colors ${isActive ? 'text-google-blue' : 'text-gray-500'}`}/>
           </div>
-          <span className={`text-[10px] font-medium leading-none ${isActive ? 'font-bold' : ''}`}>{label}</span>
+          <span className={`mt-1 transition-colors ${isActive ? 'text-gray-900 font-bold' : 'text-gray-500 font-medium'}`}>{label}</span>
         </>
       )}
     </NavLink>
   );
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white z-50 border-t border-gray-200 pb-safe-area shadow-[0_-1px_3px_rgba(0,0,0,0.05)]">
-      <div className="flex justify-around items-center h-14">
-        <NavItem to="/" icon={faHome} label="Home" exact />
-        <NavItem to="/services" icon={faLayerGroup} label="Services" />
-        {user && <NavItem to="/dashboard" icon={faTachometerAlt} label="My Space" />}
-        <NavItem to="/blog" icon={faNewspaper} label="Blog" />
-        <NavItem to={user ? "/profile" : "/login"} icon={faUser} label={user ? "Profile" : "Login"} />
-      </div>
+    // ✅ FIX: Fixed BG White + Safe Area Inset bottom means system bar looks seamlessly white
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white z-40 flex justify-around items-center h-20 px-1 border-t pb-safe-area shadow-[0_-1px_3px_rgba(0,0,0,0.05)]">
+      <NavItem to="/dashboard" icon={faTachometerAlt} label="Dashboard" />
+      <NavItem to="/services" icon={faLayerGroup} label="Services" />
+      <NavItem to="/blog" icon={faNewspaper} label="Blog" />
+      <NavLink 
+        to={user ? "/profile" : "/login"}
+        className="flex flex-col items-center justify-center w-full py-1 text-xs"
+      >
+        {({ isActive }) => (
+          <>
+            <div className={`flex items-center justify-center h-8 w-16 rounded-full transition-all duration-200 ease-in-out active:scale-90 ${isActive ? 'bg-blue-100' : 'bg-transparent'}`}>
+              {user ? (
+                <div className="h-7 w-7 rounded-full bg-gray-800 flex items-center justify-center text-white text-xs font-bold shadow-sm">
+                  {getInitials(user.email)}
+                </div>
+              ) : (
+                <FontAwesomeIcon icon={faUser} size="lg" className={`transition-colors ${isActive ? 'text-google-blue' : 'text-gray-500'}`} />
+              )}
+            </div>
+            <span className={`mt-1 transition-colors ${isActive ? 'text-gray-900 font-bold' : 'text-gray-500 font-medium'}`}>Profile</span>
+          </>
+        )}
+      </NavLink>
     </nav>
   );
 };
