@@ -109,7 +109,6 @@ export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated
     const [description, setDescription] = useState('');
     const [price, setPrice] = useState('');
     const [advanceAmount, setAdvanceAmount] = useState('');
-    const [category, setCategory] = useState('GATE');
     const [imageUrl, setImageUrl] = useState('');
     const [contentUrls, setContentUrls] = useState([{ name: '', url: '' }]);
     const [pageContent, setPageContent] = useState([]);
@@ -117,14 +116,22 @@ export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated
     const [srsForm, setSrsForm] = useState([{ label: '', fieldType: 'text', required: false }]);
     const [loading, setLoading] = useState(false);
   
-    const resetForm = useCallback(() => { setTitle(''); setDescription(''); setPrice(''); setAdvanceAmount(''); setCategory('GATE'); setImageUrl(''); setContentUrls([{ name: '', url: '' }]); setPageContent([]); setServiceType('standard'); setSrsForm([{ label: '', fieldType: 'text', required: false }]); }, []);
+    // ✅ CHANGED: Removed 'category' reset
+    const resetForm = useCallback(() => { 
+        setTitle(''); setDescription(''); setPrice(''); setAdvanceAmount(''); 
+        setImageUrl(''); setContentUrls([{ name: '', url: '' }]); 
+        setPageContent([]); setServiceType('standard'); 
+        setSrsForm([{ label: '', fieldType: 'text', required: false }]); 
+    }, []);
     
     useEffect(() => { 
         if (onFormChange) { 
-            const serviceData = { title, description, price: Number(price) || 0, advanceAmount: Number(advanceAmount) || 0, category, imageUrl, contentUrls, pageContent, serviceType, srsForm, currentPrice: Number(price) || 0, offer: serviceToEdit?.offer };
+            // ✅ AUTO-CALCULATE Category for Preview
+            const autoCategory = serviceType === 'standard' ? 'Standard' : 'Advanced';
+            const serviceData = { title, description, price: Number(price) || 0, advanceAmount: Number(advanceAmount) || 0, category: autoCategory, imageUrl, contentUrls, pageContent, serviceType, srsForm, currentPrice: Number(price) || 0, offer: serviceToEdit?.offer };
             onFormChange(serviceData); 
         } 
-    }, [title, description, price, advanceAmount, category, imageUrl, contentUrls, pageContent, serviceType, srsForm, onFormChange, serviceToEdit]);
+    }, [title, description, price, advanceAmount, imageUrl, contentUrls, pageContent, serviceType, srsForm, onFormChange, serviceToEdit]);
 
     useEffect(() => { 
         if (serviceToEdit) { 
@@ -132,7 +139,7 @@ export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated
             setDescription(serviceToEdit.description); 
             setPrice(serviceToEdit.price ? serviceToEdit.price.toString() : ''); 
             setAdvanceAmount(serviceToEdit.advanceAmount ? serviceToEdit.advanceAmount.toString() : '');
-            setCategory(serviceToEdit.category); 
+            // Category is ignored as it is auto-set
             setImageUrl(serviceToEdit.imageUrl); 
             setContentUrls(serviceToEdit.contentUrls && serviceToEdit.contentUrls.length > 0 ? serviceToEdit.contentUrls : [{ name: '', url: '' }]); 
             setPageContent(serviceToEdit.pageContent || []); 
@@ -158,7 +165,10 @@ export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated
     const handleSubmit = async (e) => {
       e.preventDefault();
       setLoading(true);
-      const serviceData = { title, description, price: Number(price), advanceAmount: Number(advanceAmount), category, imageUrl, pageContent, contentUrls, serviceType, srsForm: serviceType === 'custom' ? srsForm : [] };
+      // ✅ AUTO-CALCULATE Category based on Type
+      const autoCategory = serviceType === 'standard' ? 'Standard' : 'Advanced';
+      
+      const serviceData = { title, description, price: Number(price), advanceAmount: Number(advanceAmount), category: autoCategory, imageUrl, pageContent, contentUrls, serviceType, srsForm: serviceType === 'custom' ? srsForm : [] };
       try {
         if (serviceToEdit) { const { data } = await api.put(`/api/services/${serviceToEdit._id}`, serviceData); toast.success('Service updated!'); onServiceUpdated(data); } 
         else { const { data } = await api.post('/api/services', serviceData); toast.success('Service added!'); onServiceAdded(data); resetForm(); }
@@ -174,10 +184,14 @@ export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated
           <input type="text" placeholder="Title (for card)" value={title} onChange={e => setTitle(e.target.value)} required className="w-full p-2 border rounded"/>
           <textarea placeholder="Short Description (for card)" value={description} onChange={e => setDescription(e.target.value)} required className="w-full p-2 border rounded"/>
           <input type="text" placeholder="Image URL (for card)" value={imageUrl} onChange={e => setImageUrl(e.target.value)} required className="w-full p-2 border rounded"/>
-          <select value={category} onChange={e => setCategory(e.target.value)} className="w-full p-2 border rounded bg-white"><option value="GATE">GATE</option><option value="Project">Project</option></select>
+          
+          {/* ✅ REMOVED: Category Selector (GATE/Project) is gone. Auto-calculated in logic. */}
           
           <h4 className="font-medium border-b pb-2 pt-4">Service Type & Pricing</h4>
-          <select value={serviceType} onChange={e => setServiceType(e.target.value)} className="w-full p-2 border rounded bg-white"><option value="standard">Standard Service</option><option value="custom">Custom Project</option></select>
+          <select value={serviceType} onChange={e => setServiceType(e.target.value)} className="w-full p-2 border rounded bg-white">
+            <option value="standard">Standard</option>
+            <option value="custom">Advanced </option>
+          </select>
 
           <input type="number" placeholder={serviceType === 'standard' ? 'Price (Enter 0 for Free)' : 'Total Project Price (Optional)'} value={price} onChange={e => setPrice(e.target.value)} className="w-full p-2 border rounded"/>
 

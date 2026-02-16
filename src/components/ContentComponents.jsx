@@ -5,7 +5,7 @@ import { Link, NavLink } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faClock, faQuestionCircle, faChevronDown, faShareNodes, faSpinner, faTag, faTools, 
-  faCalendarAlt, faFolderOpen, faExternalLinkAlt, faTimes, faFire
+  faCalendarAlt, faFolderOpen, faExternalLinkAlt, faTimes, faFire, faRocket
 } from '@fortawesome/free-solid-svg-icons';
 import toast from 'react-hot-toast';
 import QRCode from "react-qr-code";
@@ -102,7 +102,6 @@ export const ServiceCard = React.memo(({ service }) => {
   const isFree = service.currentPrice === 0;
   const [isSharing, setIsSharing] = useState(false);
 
-  // ✅ FEATURE: Display calculated orders (Backend sends Real Count + 6)
   const orderBadgeText = service.orderCount ? `${service.orderCount}+ ordered` : null;
 
   const handleShareClick = async (e) => {
@@ -113,6 +112,7 @@ export const ServiceCard = React.memo(({ service }) => {
     const shareData = {
         title: service.title,
         text: service.description,
+        // ✅ CRITICAL FIX: Ensure precise URL for backend meta injection
         url: `${window.location.origin}/services/${service.slug}`,
     };
 
@@ -156,7 +156,6 @@ export const ServiceCard = React.memo(({ service }) => {
             )}
           </div>
           
-          {/* ✅ FEATURE: Order Count Badge (e.g. "11+ ordered") */}
           {orderBadgeText && (
              <div className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-sm text-white text-[10px] font-medium px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
                 <FontAwesomeIcon icon={faFire} className="text-orange-400 text-xs" />
@@ -200,7 +199,8 @@ export const ServiceCard = React.memo(({ service }) => {
               )}
             </div>
           ) : (
-            <span className="text-sm font-bold text-gray-700 flex items-center gap-1"><FontAwesomeIcon icon={faTools} className="text-google-yellow" /> Custom</span>
+            // ✅ CHANGED: "Custom" -> "Advanced" with appropriate icon
+            <span className="text-sm font-bold text-gray-700 flex items-center gap-1"><FontAwesomeIcon icon={faRocket} className="text-google-blue" /> Advanced</span>
           )}
           
           <NavLink to={`/services/${service.slug}`} className="px-4 py-1.5 bg-blue-50 text-google-blue border border-blue-100 rounded-lg hover:bg-google-blue hover:text-white transition-all text-sm font-semibold shadow-sm hover:shadow">
@@ -289,10 +289,8 @@ export const ServiceContentModal = ({ service, isOpen, onClose }) => {
                         target="_blank"
                         rel="noopener noreferrer"
                         key={index}
-                        // ✅ FIX: Permanently applying the "active/hover" styles (blue border, shadow)
                         className="group flex items-center p-3 bg-white border border-blue-200 rounded-xl shadow-md shadow-blue-50 transition-all duration-200"
                     >
-                        {/* ✅ FIX: Permanently applying the blue background and white text for the icon */}
                         <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center text-white flex-shrink-0 transition-colors">
                             <FontAwesomeIcon icon={faFolderOpen} />
                         </div>
