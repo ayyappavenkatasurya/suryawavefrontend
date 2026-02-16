@@ -14,7 +14,7 @@ import {
 } from './components';
 import { onMessageListener, requestForToken } from './firebase.jsx';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTimes, faBell, faCheckCircle } from '@fortawesome/free-solid-svg-icons';
+import { faTimes, faBell } from '@fortawesome/free-solid-svg-icons';
 import { AnimatePresence, motion } from 'framer-motion';
 
 import { useAuth } from './context.jsx';
@@ -94,15 +94,12 @@ const AnimatedRoutes = () => {
 function App() {
   const { user } = useAuth();
 
-  // ✅ Splash Screen Logic using direct DOM manipulation
+  // ✅ Splash Screen Logic
   useEffect(() => {
     const splash = document.getElementById('splash-screen');
     if (splash) {
-      // Start fading out after 2 seconds
       setTimeout(() => {
         splash.classList.add('splash-fade-out');
-        
-        // After fade-out animation is complete (500ms), remove from DOM
         setTimeout(() => {
           splash.remove();
         }, 500);
@@ -188,7 +185,6 @@ function App() {
             )}
           </div>
         ),
-        // ✅ FIXED: Reduced duration from 10s to 5s to feel more like a native app notification
         { duration: 5000, position: 'top-right' }
       );
     };
@@ -197,7 +193,7 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  // Handle notification permission prompt
+  // Handle notification permission prompt (Allow / Later)
   useEffect(() => {
     if (!user) return;
 
@@ -218,24 +214,7 @@ function App() {
                         requestForToken().then(token => {
                             if (token) {
                                 api.post('/api/notifications/subscribe', { token }).catch(err => console.warn("Silent sub fail", err));
-                                
-                                // ✅ FIXED: Intelligent Custom Toast for Mobile
-                                // We use a custom component with onClick dismiss to prevent it from getting stuck due to mobile hover/touch behavior.
-                                toast.custom((tt) => (
-                                  <div 
-                                    onClick={() => toast.dismiss(tt.id)}
-                                    className={`${tt.visible ? 'animate-enter' : 'animate-leave'} 
-                                      max-w-xs w-full bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 
-                                      flex items-center p-4 cursor-pointer transform transition-all duration-300`}
-                                  >
-                                    <div className="flex-shrink-0">
-                                      <FontAwesomeIcon icon={faCheckCircle} className="text-green-500 text-2xl" />
-                                    </div>
-                                    <div className="ml-3 flex-1 pt-0.5">
-                                      <p className="text-sm font-medium text-gray-900">Notifications Enabled!</p>
-                                    </div>
-                                  </div>
-                                ), { duration: 3000, position: 'top-center' });
+                                // ✅ LOGIC: Toast removed as per request. Only backend subscription happens.
                             }
                         });
                     }}

@@ -93,7 +93,7 @@ export const unsubscribeCurrentToken = async (authToken) => {
             if (authToken) config.headers = { Authorization: `Bearer ${authToken}` };
             await api.post('/api/notifications/unsubscribe', { token: currentToken }, config);
             await deleteToken(messaging);
-            if (!authToken) toast.success('Notifications Disabled!');
+            // ✅ LOGIC: Toast removed.
             return true;
         }
         return true;

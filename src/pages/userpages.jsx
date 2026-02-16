@@ -7,11 +7,11 @@ import { useQuery } from '@tanstack/react-query';
 import { SEO, Spinner, ServiceContentModal, DashboardItemSkeleton, SkeletonPulse } from '../components';
 import { useAuth } from '../context';
 import api from '../services';
-import { requestForToken, unsubscribeCurrentToken } from '../firebase.jsx';
+import { requestForToken } from '../firebase.jsx';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
-    faHistory, faSpinner, faFolderOpen, faShareNodes, faBell, faBellSlash, faSignOutAlt, faUserShield, faTrashAlt, faExclamationTriangle
+    faHistory, faSpinner, faFolderOpen, faShareNodes, faBell, faSignOutAlt, faUserShield, faTrashAlt, faExclamationTriangle
 } from '@fortawesome/free-solid-svg-icons';
 import { faWhatsapp, faGoogle } from '@fortawesome/free-brands-svg-icons';
 import { LazyImage } from '../components/LazyImage';
@@ -32,14 +32,8 @@ const NotificationSettings = () => {
         setLoading(false);
     };
 
-    const handleDisable = async () => {
-        setLoading(true);
-        const success = await unsubscribeCurrentToken();
-        if (success) {
-            setPermission('default');
-        }
-        setLoading(false);
-    };
+    // ✅ LOGIC: "Disable" feature removed completely.
+    // If granted, just show status. If default/denied, show Enable button.
 
     return (
         <div className="bg-white p-4 rounded-lg shadow-sm border text-left">
@@ -49,15 +43,7 @@ const NotificationSettings = () => {
             </h3>
             {permission === 'granted' && (
                 <div className="flex items-center justify-between">
-                    <p className="text-sm text-green-700">Notifications are enabled.</p>
-                    <button 
-                        onClick={handleDisable} 
-                        disabled={loading}
-                        className="px-3 py-1.5 text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200 flex items-center justify-center gap-2 disabled:bg-gray-200"
-                    >
-                        {loading ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faBellSlash}/>}
-                        Disable
-                    </button>
+                    <p className="text-sm text-green-700 font-medium">Notifications are enabled on this device.</p>
                 </div>
             )}
             {permission === 'default' && (
