@@ -20,7 +20,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     
-    <!-- ✅ System Bar Matching: Set theme-color to white for bottom nav blending -->
+    <!-- ✅ System Bar Matching -->
     <meta name="theme-color" content="#ffffff">
     
     <title>Surya Wave | Quality Digital Services</title>
@@ -35,7 +35,6 @@
     <meta property="og:image" content="https://suryawave.me/og-image.png" />
     <meta property="og:url" content="https://suryawave.me/" />
 
-    <!-- ✅ Splash Screen Styles (Updated with Loading Bar) -->
     <style>
       #splash-screen {
         position: fixed;
@@ -96,13 +95,14 @@
         animation: fade-in 0.5s ease-out 0.5s forwards;
       }
 
-      /* Animated Progress Bar */
+      /* ✅ Single Smooth Progress Bar Animation */
       .loading-bar {
         height: 100%;
         background-color: #4285F4;
         width: 0%;
         border-radius: 99px;
-        animation: fill-progress 2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        /* ఇక్కడ cubic-bezier వాడటం వల్ల స్టార్టింగ్ మరియు ఎండింగ్ స్మూత్ గా ఉంటుంది */
+        animation: fill-progress 1.5s ease-in-out forwards;
       }
 
       @keyframes scale-up {
@@ -120,16 +120,14 @@
         to { opacity: 1; }
       }
 
+      /* ✅ Simplified Keyframe: Single move from 0 to 100 */
       @keyframes fill-progress {
         0% { width: 0%; }
-        20% { width: 30%; }
-        80% { width: 85%; }
         100% { width: 100%; }
       }
     </style>
   </head>
   <body>
-    <!-- ✅ Splash Screen HTML -->
     <div id="splash-screen">
       <div class="logo-container">
         <img src="/logo.png" alt="Surya Wave" style="width: 5rem; height: 5rem; object-fit: contain;" />
@@ -138,16 +136,13 @@
         <h1>Surya<span>wave</span></h1>
         <p>Quality Digital Services</p>
       </div>
-      <!-- Loading Bar -->
       <div class="loading-bar-container">
         <div class="loading-bar"></div>
       </div>
     </div>
 
-    <!-- Google Tag Manager (noscript) -->
     <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-K5XTLFZJ"
     height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-    <!-- End Google Tag Manager (noscript) -->
     
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
