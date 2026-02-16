@@ -1,15 +1,12 @@
 import { lazy } from 'react';
 
-// This barrel file exports all page components with lazy loading.
-// This keeps App.jsx clean and handles code-splitting automatically.
-
 // --- Public Pages ---
-export const ServicesPage = lazy(() => import('./publicpages').then(module => ({ default: module.ServicesPage })));
-export const ServiceDetailPage = lazy(() => import('./publicpages').then(module => ({ default: module.ServiceDetailPage })));
-export const AboutPage = lazy(() => import('./publicpages').then(module => ({ default: module.AboutPage })));
-export const ContactPage = lazy(() => import('./publicpages').then(module => ({ default: module.ContactPage })));
-export const PrivacyPolicyPage = lazy(() => import('./publicpages').then(module => ({ default: module.PrivacyPolicyPage })));
-export const TermsOfServicePage = lazy(() => import('./publicpages').then(module => ({ default: module.TermsOfServicePage })));
+export const ServicesPage = lazy(() => import('./public/ServicesListingPage').then(module => ({ default: module.ServicesPage })));
+export const ServiceDetailPage = lazy(() => import('./public/ServiceDetailPage').then(module => ({ default: module.ServiceDetailPage })));
+export const AboutPage = lazy(() => import('./public/StaticPages').then(module => ({ default: module.AboutPage })));
+export const ContactPage = lazy(() => import('./public/StaticPages').then(module => ({ default: module.ContactPage })));
+export const PrivacyPolicyPage = lazy(() => import('./public/StaticPages').then(module => ({ default: module.PrivacyPolicyPage })));
+export const TermsOfServicePage = lazy(() => import('./public/StaticPages').then(module => ({ default: module.TermsOfServicePage })));
 
 // --- Auth Pages ---
 export const LoginPage = lazy(() => import('./authpages').then(module => ({ default: module.LoginPage })));
@@ -32,7 +29,6 @@ export const ArticlesPage = lazy(() => import('./blogpages').then(module => ({ d
 export const ArticleDetailPage = lazy(() => import('./blogpages').then(module => ({ default: module.ArticleDetailPage })));
 
 // --- Admin Pages ---
-// ✅ UPDATED: Points to the new separate file in the admin folder
 export const AdminDashboardPage = lazy(() => import('./admin/AdminDashboard').then(module => ({ default: module.AdminDashboardPage })));
 
 // --- Error Pages ---
