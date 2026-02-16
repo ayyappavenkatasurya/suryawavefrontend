@@ -83,7 +83,7 @@ export const ProjectRequestsView = ({
     return (
         <div>
             <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Custom Project Requests</h2>
+            <h2 className="text-xl font-semibold">Advanced Project Requests</h2>
             <button onClick={() => exportToCSV(displayedRequests.map(p => ({ ...p, srsData: JSON.stringify(p.srsData) })), 'project_requests.csv')} className="bg-green-600 text-white px-3 py-1.5 rounded-md text-sm flex items-center gap-2 hover:bg-green-700 transition-colors">
                 <FontAwesomeIcon icon={faDownload} /> Export CSV
             </button>

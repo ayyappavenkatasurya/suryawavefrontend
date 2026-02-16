@@ -61,7 +61,7 @@ export const ServicesView = ({ getRenderData, deleteServiceMutation, actionLoadi
                                 <div key={s._id} className="bg-white p-4 rounded-lg shadow-sm border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                                     <div>
                                         <strong className="block">{s.title}</strong>
-                                        <span className="text-sm text-gray-600">{s.serviceType === 'custom' ? `Custom (Total: ₹${s.price}, Adv: ₹${s.advanceAmount})` : `Standard (₹${s.price})`}</span>
+                                        <span className="text-sm text-gray-600">{s.serviceType === 'custom' ? `Advanced (Total: ₹${s.price}, Adv: ₹${s.advanceAmount})` : `Standard (₹${s.price})`}</span>
                                         {s.offer?.name && (
                                             <div className="text-xs mt-1 p-1.5 bg-green-100 text-green-800 rounded-md">
                                                 <p><FontAwesomeIcon icon={faTag} /> <strong>{s.offer.name}</strong> @ ₹{s.offer.price}</p>

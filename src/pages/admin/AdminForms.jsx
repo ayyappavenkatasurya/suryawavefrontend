@@ -213,7 +213,7 @@ export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated
           ) : (
              <>
                 <input type="number" placeholder="Advance Amount (Optional)" value={advanceAmount} onChange={e => setAdvanceAmount(e.target.value)} className="w-full p-2 border rounded"/>
-                <h4 className="font-medium border-b pb-2 pt-4">Custom SRS Form Builder</h4>
+                <h4 className="font-medium border-b pb-2 pt-4">Advanced Project Requirements Builder</h4>
                 <div className="space-y-3 border p-3 rounded-md min-h-[100px] bg-gray-50 max-h-64 overflow-y-auto">
                     {srsForm.map((field, index) => (
                         <div key={index} className="p-3 border bg-white rounded shadow-sm flex items-start gap-2">

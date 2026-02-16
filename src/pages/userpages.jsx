@@ -226,7 +226,9 @@ const DashboardItem = React.memo(({ item, openContentModal }) => {
             <div className="flex-grow text-left">
                 <div className="flex flex-wrap gap-2 items-center mb-1">
                     <span className={`capitalize text-xs font-medium px-2 py-1 rounded-full ${getStatusBadge(item.status)}`}>{statusText}</span>
-                    <span className="text-xs font-semibold px-2 py-1 rounded-full bg-gray-100 text-gray-700">{item.type}</span>
+                    <span className="text-xs font-semibold px-2 py-1 rounded-full bg-gray-100 text-gray-700">
+                        {item.type === 'custom' ? 'Advanced' : item.type}
+                    </span>
                 </div>
                 <h3 className="font-bold text-lg">{item.title}</h3>
                 <p className="text-xs text-gray-500 mt-1 mb-3">Last updated: {new Date(item.date).toLocaleString()}</p>

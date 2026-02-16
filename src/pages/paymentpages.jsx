@@ -121,7 +121,7 @@ export const AdvancePaymentPage = () => {
             <div className="container mx-auto py-12 px-4 sm:px-6 lg:px-8">
                 <PaymentComponent
                     title="Advance Payment"
-                    description={<>For custom project "{details.service.title}" an advance of <span className="font-bold">₹{intent.amount}</span> is required.</>}
+                    description={<>For Advanced project "{details.service.title}" an advance of <span className="font-bold">₹{intent.amount}</span> is required.</>}
                     amount={intent.amount}
                     upiId={import.meta.env.VITE_UPI_ID}
                     upiName={import.meta.env.VITE_UPI_NAME}
@@ -149,7 +149,7 @@ export const FullPaymentPage = () => {
             <div className="container mx-auto py-12 px-4 sm:px-6 lg:px-8">
                  <PaymentComponent
                     title="Final Payment"
-                    description={<>For custom project "{details.service.title}" the final payment is <span className="font-bold">₹{intent.amount}</span>.</>}
+                    description={<>For Advanced project "{details.service.title}" the final payment is <span className="font-bold">₹{intent.amount}</span>.</>}
                     amount={intent.amount}
                     upiId={import.meta.env.VITE_UPI_ID}
                     upiName={import.meta.env.VITE_UPI_NAME}
