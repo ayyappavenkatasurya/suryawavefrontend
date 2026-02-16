@@ -188,7 +188,8 @@ function App() {
             )}
           </div>
         ),
-        { duration: 10000, position: 'top-right' }
+        // ✅ FIXED: Reduced duration from 10s to 5s to feel more like a native app notification
+        { duration: 5000, position: 'top-right' }
       );
     };
 
@@ -217,7 +218,8 @@ function App() {
                         requestForToken().then(token => {
                             if (token) {
                                 api.post('/api/notifications/subscribe', { token }).catch(err => console.warn("Silent sub fail", err));
-                                toast.success("Notifications Enabled!");
+                                // ✅ FIXED: Added specific duration (3000ms) so it closes automatically and feels snappy
+                                toast.success("Notifications Enabled!", { duration: 3000 });
                             }
                         });
                     }}
