@@ -3,7 +3,16 @@
 import React, { Suspense, useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
-import { Header, Footer, ProtectedRoute, AdminRoute, Spinner, BottomNav, PwaReloadPrompt, SplashScreen } from './components';
+import { 
+  Header, 
+  Footer, 
+  ProtectedRoute, 
+  AdminRoute, 
+  Spinner, 
+  BottomNav, 
+  PwaReloadPrompt, 
+  SplashScreen 
+} from './components';
 import { onMessageListener, requestForToken } from './firebase.jsx';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes, faBell } from '@fortawesome/free-solid-svg-icons';
@@ -85,19 +94,18 @@ const AnimatedRoutes = () => {
 
 function App() {
   const { user } = useAuth();
-  const [showSplash, setShowSplash] = useState(true); // New State for Splash Screen
+  const [showSplash, setShowSplash] = useState(true);
 
   // Splash Screen Logic
   useEffect(() => {
-    // Show splash for 2.5 seconds, then reveal the main app
     const timer = setTimeout(() => {
       setShowSplash(false);
-    }, 2500);
+    }, 2500); // 2.5 seconds
 
     return () => clearTimeout(timer);
   }, []);
   
-  // Handle foreground messages
+  // Handle foreground notification messages
   useEffect(() => {
     const notificationHandler = (payload) => {
       const { title, body, icon, url, image, actions: actionsString } = payload.data;
@@ -183,6 +191,7 @@ function App() {
     return () => unsubscribe();
   }, []);
 
+  // Handle notification permission prompt
   useEffect(() => {
     if (!user) return;
 
@@ -228,34 +237,36 @@ function App() {
     }
   }, [user]);
 
-  return (
-    <>
+  // If splash is active, only render the splash screen
+  if (showSplash) {
+    return (
       <AnimatePresence mode="wait">
-        {showSplash && <SplashScreen key="splash" />}
+        <SplashScreen key="splash" />
       </AnimatePresence>
+    );
+  }
 
-      {!showSplash && (
-        <Router>
-          <Toaster position="top-center" reverseOrder={false} />
-          <PwaReloadPrompt />
-          <motion.div 
-            className="flex flex-col min-h-screen"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.4 }}
-          >
-            <Header />
-            <main className="flex-grow pb-20 md:pb-0">
-              <Suspense fallback={<Spinner />}>
-                <AnimatedRoutes />
-              </Suspense>
-            </main>
-            <Footer />
-            <BottomNav />
-          </motion.div>
-        </Router>
-      )}
-    </>
+  // After splash, render the main application
+  return (
+    <Router>
+      <Toaster position="top-center" reverseOrder={false} />
+      <PwaReloadPrompt />
+      <motion.div 
+        className="flex flex-col min-h-screen"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+      >
+        <Header />
+        <main className="flex-grow pb-20 md:pb-0">
+          <Suspense fallback={<Spinner />}>
+            <AnimatedRoutes />
+          </Suspense>
+        </main>
+        <Footer />
+        <BottomNav />
+      </motion.div>
+    </Router>
   );
 }
 
