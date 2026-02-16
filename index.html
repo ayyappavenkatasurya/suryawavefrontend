@@ -23,6 +23,8 @@
     <!-- ✅ System Bar Matching -->
     <meta name="theme-color" content="#ffffff">
     
+    <!-- ✅ SEO & Social Sharing (Defaults) -->
+    <!-- These values are REPLACED by the backend when sharing specific service links -->
     <title>Surya Wave | Quality Digital Services</title>
     <meta name="description" content="SuryaWave provides high-quality digital services like GATE test papers and final year projects at budget-friendly prices. Making technology and learning accessible to all." />
     
@@ -30,10 +32,16 @@
     <meta property="og:locale" content="en_IN" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Surya Wave" />
+    
     <meta property="og:title" content="Surya Wave | Quality Digital Services" />
     <meta property="og:description" content="SuryaWave provides high-quality digital services like GATE test papers and final year projects at budget-friendly prices. Making technology and learning accessible to all." />
     <meta property="og:image" content="https://suryawave.me/og-image.png" />
     <meta property="og:url" content="https://suryawave.me/" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Surya Wave | Quality Digital Services" />
+    <meta name="twitter:description" content="SuryaWave provides high-quality digital services like GATE test papers and final year projects at budget-friendly prices." />
+    <meta name="twitter:image" content="https://suryawave.me/og-image.png" />
 
     <style>
       #splash-screen {
@@ -101,7 +109,7 @@
         background-color: #4285F4;
         width: 0%;
         border-radius: 99px;
-        /* ఇక్కడ cubic-bezier వాడటం వల్ల స్టార్టింగ్ మరియు ఎండింగ్ స్మూత్ గా ఉంటుంది */
+        /* Cubic-bezier for smooth start and end */
         animation: fill-progress 1.5s ease-in-out forwards;
       }
 
@@ -120,7 +128,6 @@
         to { opacity: 1; }
       }
 
-      /* ✅ Simplified Keyframe: Single move from 0 to 100 */
       @keyframes fill-progress {
         0% { width: 0%; }
         100% { width: 100%; }

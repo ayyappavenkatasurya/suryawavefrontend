@@ -109,11 +109,15 @@ export const ServiceCard = React.memo(({ service }) => {
     e.stopPropagation();
     setIsSharing(true);
     
+    // Construct the absolute URL. 
+    // Ideally this points to your production domain (https://suryawave.me)
+    // The backend `server.js` MUST be serving this URL for OG tags to work.
+    const shareUrl = `${window.location.origin}/services/${service.slug}`;
+
     const shareData = {
         title: service.title,
         text: service.description,
-        // ✅ CRITICAL FIX: Ensure precise URL for backend meta injection
-        url: `${window.location.origin}/services/${service.slug}`,
+        url: shareUrl,
     };
 
     try {
@@ -199,7 +203,6 @@ export const ServiceCard = React.memo(({ service }) => {
               )}
             </div>
           ) : (
-            // ✅ CHANGED: "Custom" -> "Advanced" with appropriate icon
             <span className="text-sm font-bold text-gray-700 flex items-center gap-1"><FontAwesomeIcon icon={faRocket} className="text-google-blue" /> Advanced</span>
           )}
           

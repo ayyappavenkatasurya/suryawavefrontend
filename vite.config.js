@@ -22,9 +22,9 @@ export default defineConfig({
         description: 'High-quality digital services like GATE test papers and final year projects at budget-friendly prices.',
         theme_color: '#ffffff',
         background_color: '#ffffff',
-        display: 'standalone', // Important for TWA
-        // ✅ ADDED: Specific display override for TWA wrappers
-        display_override: ['window-controls-overlay', 'standalone'],
+        display: 'standalone', 
+        // ✅ Specific display override for TWA wrappers & Desktop
+        display_override: ['window-controls-overlay', 'standalone', 'minimal-ui'],
         scope: '/',
         start_url: '/',
         orientation: 'portrait',
@@ -34,8 +34,34 @@ export default defineConfig({
           { src: '/logo-384x384.png', sizes: '384x384', type: 'image/png' },
           { src: '/logo-512x512.png', sizes: '512x512', type: 'image/png' },
         ],
-        // ✅ ADDED: Categories for store
+        // ✅ MANDATORY FOR PLAY STORE: Categories
         categories: ["education", "productivity", "utilities"],
+        // ✅ Recommended: Screenshots for Rich Install UI (Uncomment and add images to public folder)
+        /*
+        screenshots: [
+          {
+            "src": "/screenshot-mobile.png",
+            "sizes": "1080x1920",
+            "type": "image/png",
+            "form_factor": "narrow",
+            "label": "Surya Wave Home"
+          },
+          {
+            "src": "/screenshot-desktop.png",
+            "sizes": "1920x1080",
+            "type": "image/png",
+            "form_factor": "wide",
+            "label": "Surya Wave Dashboard"
+          }
+        ],
+        */
+        related_applications: [
+          {
+            platform: "play",
+            url: "https://play.google.com/store/apps/details?id=com.suryawave.app",
+            id: "com.suryawave.app"
+          }
+        ]
       },
       devOptions: {
         enabled: true,
