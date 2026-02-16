@@ -1,9 +1,9 @@
 // frontend/src/App.jsx
 
-import React, { Suspense, useEffect } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
-import { Header, Footer, ProtectedRoute, AdminRoute, Spinner, BottomNav, PwaReloadPrompt } from './components';
+import { Header, Footer, ProtectedRoute, AdminRoute, Spinner, BottomNav, PwaReloadPrompt, SplashScreen } from './components';
 import { onMessageListener, requestForToken } from './firebase.jsx';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes, faBell } from '@fortawesome/free-solid-svg-icons';
@@ -85,6 +85,17 @@ const AnimatedRoutes = () => {
 
 function App() {
   const { user } = useAuth();
+  const [showSplash, setShowSplash] = useState(true); // New State for Splash Screen
+
+  // Splash Screen Logic
+  useEffect(() => {
+    // Show splash for 2.5 seconds, then reveal the main app
+    const timer = setTimeout(() => {
+      setShowSplash(false);
+    }, 2500);
+
+    return () => clearTimeout(timer);
+  }, []);
   
   // Handle foreground messages
   useEffect(() => {
@@ -93,7 +104,6 @@ function App() {
       
       let actions = [];
       try {
-          // ✅ FIXED: More robust check to ensure actionsString is a non-empty string before parsing.
           if (actionsString && typeof actionsString === 'string' && actionsString !== "[]") {
               actions = JSON.parse(actionsString);
           }
@@ -219,20 +229,33 @@ function App() {
   }, [user]);
 
   return (
-    <Router>
-      <Toaster position="top-center" reverseOrder={false} />
-      <PwaReloadPrompt />
-      <div className="flex flex-col min-h-screen">
-        <Header />
-        <main className="flex-grow pb-20 md:pb-0">
-          <Suspense fallback={<Spinner />}>
-            <AnimatedRoutes />
-          </Suspense>
-        </main>
-        <Footer />
-        <BottomNav />
-      </div>
-    </Router>
+    <>
+      <AnimatePresence mode="wait">
+        {showSplash && <SplashScreen key="splash" />}
+      </AnimatePresence>
+
+      {!showSplash && (
+        <Router>
+          <Toaster position="top-center" reverseOrder={false} />
+          <PwaReloadPrompt />
+          <motion.div 
+            className="flex flex-col min-h-screen"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4 }}
+          >
+            <Header />
+            <main className="flex-grow pb-20 md:pb-0">
+              <Suspense fallback={<Spinner />}>
+                <AnimatedRoutes />
+              </Suspense>
+            </main>
+            <Footer />
+            <BottomNav />
+          </motion.div>
+        </Router>
+      )}
+    </>
   );
 }
 
