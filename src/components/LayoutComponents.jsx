@@ -11,7 +11,6 @@ import {
 import { faLinkedin, faYoutube, faInstagram } from '@fortawesome/free-brands-svg-icons';
 import toast from 'react-hot-toast';
 import { useRegisterSW } from 'virtual:pwa-register/react';
-import { Helmet } from 'react-helmet-async'; // ✅ ADDED HELMET IMPORT
 
 // --- PWA Reload Prompt ---
 
@@ -95,7 +94,7 @@ export const SEO = ({ title, description, keywords, image, path, children }) => 
     : `${currentOrigin}/og-image.png`;
 
   return (
-    <Helmet> {/* ✅ CHANGED FROM FRAGMENT TO HELMET */}
+    <>
       <title>{`${title} | Surya Wave`}</title>
       <meta name='description' content={description} />
       <meta name='keywords' content={`Surya Wave, Surya Nallamothu, GATE 2026, Final Year Projects, ${keywords}`} />
@@ -112,10 +111,8 @@ export const SEO = ({ title, description, keywords, image, path, children }) => 
       <meta name="twitter:title" content={`${title} | Surya Wave`} />
       <meta name="twitter:description" content={description} />
       <meta name="twitter:image" content={imageUrl} />
-      
-      {/* This ensures JSON-LD scripts are also moved to head */}
       {children}
-    </Helmet>
+    </>
   );
 };
 

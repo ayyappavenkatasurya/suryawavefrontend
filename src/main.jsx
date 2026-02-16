@@ -3,7 +3,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { HelmetProvider } from 'react-helmet-async'; // ✅ ADDED THIS
+// Removed Devtools import
 import { AuthProvider, PwaInstallProvider } from './context.jsx';
 import App from './App.jsx';
 import './index.css';
@@ -22,14 +22,12 @@ const queryClient = new QueryClient({
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <HelmetProvider> {/* ✅ WRAPPED APP WITH HELMET PROVIDER */}
-      <PwaInstallProvider>
-        <QueryClientProvider client={queryClient}>
-          <AuthProvider>
-            <App />
-          </AuthProvider>
-        </QueryClientProvider>
-      </PwaInstallProvider>
-    </HelmetProvider>
+    <PwaInstallProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </QueryClientProvider>
+    </PwaInstallProvider>
   </React.StrictMode>,
 )
