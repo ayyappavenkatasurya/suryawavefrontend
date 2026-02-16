@@ -6,7 +6,7 @@ import { useAuth, usePwaInstall } from '../context';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faDownload, faEllipsisVertical, faTachometerAlt, 
-  faLayerGroup, faNewspaper, faUser 
+  faLayerGroup, faNewspaper, faUser, faHome
 } from '@fortawesome/free-solid-svg-icons';
 import { faLinkedin, faYoutube, faInstagram } from '@fortawesome/free-brands-svg-icons';
 import toast from 'react-hot-toast';
@@ -159,34 +159,35 @@ export const Header = React.memo(() => {
   );
 
   return (
-    <header className="bg-white sticky top-0 z-50 shadow-sm transition-all duration-300">
-      <nav className="mx-auto px-4 sm:px-6 lg:px-8">
+    <header className="bg-white/95 backdrop-blur-sm sticky top-0 z-50 shadow-sm border-b border-gray-100 transition-all duration-300">
+      <nav className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex-shrink-0">
-            <NavLink to="/" className="flex items-center gap-2 text-2xl font-bold text-google-blue">
-              <span>Surya<span className="text-gray-800">wave</span></span>
+            <NavLink to="/" className="flex items-center gap-2 text-xl font-bold text-google-blue">
+              <img src="/logo.png" alt="Logo" className="h-8 w-auto" />
+              <span>Surya<span className="text-gray-800">Wave</span></span>
             </NavLink>
           </div>
           
           <div className="hidden md:flex items-center space-x-4">
             {installPrompt && <InstallButton />}
             
-            <NavLink to="/services" className={({isActive}) => `px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive ? 'bg-gray-100 text-gray-900' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'}`}>Services</NavLink>
-            <NavLink to="/blog" className={({isActive}) => `px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive ? 'bg-gray-100 text-gray-900' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'}`}>Blog</NavLink>
+            <NavLink to="/services" className={({isActive}) => `px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive ? 'text-google-blue bg-blue-50' : 'text-gray-600 hover:bg-gray-50'}`}>Services</NavLink>
+            <NavLink to="/blog" className={({isActive}) => `px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive ? 'text-google-blue bg-blue-50' : 'text-gray-600 hover:bg-gray-50'}`}>Blog</NavLink>
             {user ? (
               <>
-                <NavLink to="/dashboard" className={({isActive}) => `px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive ? 'bg-gray-100 text-gray-900' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'}`}>Dashboard</NavLink>
-                {user.role === 'admin' && <NavLink to="/admin" className={({isActive}) => `px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive ? 'bg-gray-100 text-google-red' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'}`}>Admin</NavLink>}
-                <button onClick={logout} className="px-3 py-2 rounded-md text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-colors">Logout</button>
+                <NavLink to="/dashboard" className={({isActive}) => `px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive ? 'text-google-blue bg-blue-50' : 'text-gray-600 hover:bg-gray-50'}`}>Dashboard</NavLink>
+                {user.role === 'admin' && <NavLink to="/admin" className={({isActive}) => `px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive ? 'text-red-600 bg-red-50' : 'text-gray-600 hover:bg-gray-50'}`}>Admin</NavLink>}
+                <button onClick={logout} className="px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">Logout</button>
               </>
             ) : (
-              <NavLink to="/login" className="px-4 py-2 rounded-md text-sm font-medium text-white bg-google-blue hover:bg-blue-600 transition-colors">Sign In</NavLink>
+              <NavLink to="/login" className="px-4 py-2 rounded-full text-sm font-bold text-white bg-google-blue hover:bg-blue-600 shadow-md transition-all hover:shadow-lg">Sign In</NavLink>
             )}
           </div>
 
           <div className="md:hidden flex items-center gap-2">
             {!user && (
-              <NavLink to="/login" className="px-3 py-1.5 rounded-md text-sm font-medium text-white bg-google-blue hover:bg-blue-600 transition-colors">
+              <NavLink to="/login" className="px-4 py-1.5 rounded-full text-sm font-bold text-white bg-google-blue hover:bg-blue-600 shadow-sm transition-all">
                 Sign In
               </NavLink>
             )}
@@ -202,7 +203,7 @@ export const Header = React.memo(() => {
                 <FontAwesomeIcon icon={faEllipsisVertical} className="h-6 w-6" />
               </button>
               {isDotsMenuOpen && (
-                <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none py-1 animate-enter">
+                <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-xl shadow-xl bg-white ring-1 ring-black ring-opacity-5 focus:outline-none py-1 animate-enter z-50">
                   <DotsMenuItem to="/about">About Us</DotsMenuItem>
                   <DotsMenuItem to="/contact">Contact</DotsMenuItem>
                   <DotsMenuItem to="/privacy-policy">Privacy Policy</DotsMenuItem>
@@ -212,7 +213,7 @@ export const Header = React.memo(() => {
                         <div className="border-t my-1"></div>
                         <button
                           onClick={() => { logout(); setIsDotsMenuOpen(false); }}
-                          className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                          className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50 font-medium"
                         >
                           Logout
                         </button>
@@ -229,56 +230,40 @@ export const Header = React.memo(() => {
 });
 Header.displayName = 'Header';
 
-// --- Bottom Navigation ---
+// --- Bottom Navigation (MNC App Style) ---
 
 export const BottomNav = () => {
   const { user } = useAuth();
 
-  const getInitials = (email) => {
-    if (!email) return '';
-    return email.substring(0, 2).toUpperCase();
-  };
-
-  const NavItem = ({ to, icon, label }) => (
+  // Helper to construct MNC-style Nav Items
+  const NavItem = ({ to, icon, label, exact = false }) => (
     <NavLink 
       to={to} 
-      className="flex flex-col items-center justify-center w-full py-1 text-xs"
+      end={exact}
+      className={({ isActive }) => 
+        `flex flex-col items-center justify-center w-full py-1.5 transition-colors duration-200 ${isActive ? 'text-google-blue' : 'text-gray-500 hover:text-gray-700'}`
+      }
     >
       {({ isActive }) => (
         <>
-          <div className={`flex items-center justify-center h-8 w-16 rounded-full transition-all duration-200 ease-in-out active:scale-90 ${isActive ? 'bg-blue-100' : 'bg-transparent'}`}>
-            <FontAwesomeIcon icon={icon} size="lg" className={`transition-colors ${isActive ? 'text-google-blue' : 'text-gray-500'}`}/>
+          <div className={`mb-0.5 relative ${isActive ? '-mt-1' : ''} transition-all duration-300`}>
+            <FontAwesomeIcon icon={icon} className={`text-xl ${isActive ? 'transform scale-110' : ''}`} />
           </div>
-          <span className={`mt-1 transition-colors ${isActive ? 'text-gray-900 font-bold' : 'text-gray-500 font-medium'}`}>{label}</span>
+          <span className={`text-[10px] font-medium leading-none ${isActive ? 'font-bold' : ''}`}>{label}</span>
         </>
       )}
     </NavLink>
   );
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white z-40 flex justify-around items-center h-20 px-1 border-t pb-safe-area">
-      <NavItem to="/dashboard" icon={faTachometerAlt} label="Dashboard" />
-      <NavItem to="/services" icon={faLayerGroup} label="Services" />
-      <NavItem to="/blog" icon={faNewspaper} label="Blog" />
-      <NavLink 
-        to={user ? "/profile" : "/login"}
-        className="flex flex-col items-center justify-center w-full py-1 text-xs"
-      >
-        {({ isActive }) => (
-          <>
-            <div className={`flex items-center justify-center h-8 w-16 rounded-full transition-all duration-200 ease-in-out active:scale-90 ${isActive ? 'bg-blue-100' : 'bg-transparent'}`}>
-              {user ? (
-                <div className="h-7 w-7 rounded-full bg-gray-800 flex items-center justify-center text-white text-xs font-bold shadow-sm">
-                  {getInitials(user.email)}
-                </div>
-              ) : (
-                <FontAwesomeIcon icon={faUser} size="lg" className={`transition-colors ${isActive ? 'text-google-blue' : 'text-gray-500'}`} />
-              )}
-            </div>
-            <span className={`mt-1 transition-colors ${isActive ? 'text-gray-900 font-bold' : 'text-gray-500 font-medium'}`}>Profile</span>
-          </>
-        )}
-      </NavLink>
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white z-50 border-t border-gray-200 pb-safe-area shadow-[0_-1px_3px_rgba(0,0,0,0.05)]">
+      <div className="flex justify-around items-center h-14">
+        <NavItem to="/" icon={faHome} label="Home" exact />
+        <NavItem to="/services" icon={faLayerGroup} label="Services" />
+        {user && <NavItem to="/dashboard" icon={faTachometerAlt} label="My Space" />}
+        <NavItem to="/blog" icon={faNewspaper} label="Blog" />
+        <NavItem to={user ? "/profile" : "/login"} icon={faUser} label={user ? "Profile" : "Login"} />
+      </div>
     </nav>
   );
 };
@@ -286,31 +271,33 @@ export const BottomNav = () => {
 // --- Footer ---
 
 export const Footer = React.memo(() => (
-    <footer className="bg-white border-t hidden md:block">
-      <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-center space-x-6 mb-4">
-          <a href="https://www.linkedin.com/company/suryawave" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-google-blue transition-colors" aria-label="LinkedIn">
-            <FontAwesomeIcon icon={faLinkedin} size="2x" />
-          </a>
-          <a href="https://www.youtube.com/@Suryawave" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-google-red transition-colors" aria-label="YouTube">
-            <FontAwesomeIcon icon={faYoutube} size="2x" />
-          </a>
-          <a href="https://www.instagram.com/suryawaveofficial" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-pink-500 transition-colors" aria-label="Instagram">
-            <FontAwesomeIcon icon={faInstagram} size="2x" />
-          </a>
+    <footer className="bg-white border-t border-gray-100 hidden md:block mt-auto">
+      <div className="container mx-auto py-10 px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-col items-center">
+          <div className="flex space-x-8 mb-6">
+            <a href="https://www.linkedin.com/company/suryawave" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-google-blue transition-colors transform hover:scale-110 duration-200" aria-label="LinkedIn">
+              <FontAwesomeIcon icon={faLinkedin} size="2x" />
+            </a>
+            <a href="https://www.youtube.com/@Suryawave" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-google-red transition-colors transform hover:scale-110 duration-200" aria-label="YouTube">
+              <FontAwesomeIcon icon={faYoutube} size="2x" />
+            </a>
+            <a href="https://www.instagram.com/suryawaveofficial" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-pink-500 transition-colors transform hover:scale-110 duration-200" aria-label="Instagram">
+              <FontAwesomeIcon icon={faInstagram} size="2x" />
+            </a>
+          </div>
+          
+          <div className="flex flex-wrap justify-center gap-6 mb-6 text-sm font-medium text-gray-500">
+            <Link to="/about" className="hover:text-google-blue transition-colors">About</Link>
+            <Link to="/contact" className="hover:text-google-blue transition-colors">Contact</Link>
+            <Link to="/privacy-policy" className="hover:text-google-blue transition-colors">Privacy</Link>
+            <Link to="/terms-of-service" className="hover:text-google-blue transition-colors">Terms</Link>
+          </div>
+
+          <div className="text-center text-xs text-gray-400 border-t border-gray-100 pt-6 w-full max-w-lg">
+            <p className="mb-2">© {new Date().getFullYear()} Surya Wave. All rights reserved.</p>
+            <p>Founded by Surya Nallamothu</p>
+          </div>
         </div>
-        <div className="flex justify-center items-center flex-wrap gap-x-4 gap-y-2 mb-4 text-sm text-gray-600">
-          <Link to="/about" className="hover:text-google-blue hover:underline">About Us</Link>
-          <span className="text-gray-300 hidden sm:inline">|</span>
-          <Link to="/contact" className="hover:text-google-blue hover:underline">Contact</Link>
-          <span className="text-gray-300 hidden sm:inline">|</span>
-          <Link to="/privacy-policy" className="hover:text-google-blue hover:underline">Privacy Policy</Link>
-          <span className="text-gray-300 hidden sm:inline">|</span>
-          <Link to="/terms-of-service" className="hover:text-google-blue hover:underline">Terms of Service</Link>
-        </div>
-        <p className="text-center text-sm text-gray-500">
-          © {new Date().getFullYear()} Surya Wave. All rights reserved. Founded by Surya Nallamothu.
-        </p>
       </div>
     </footer>
 ));

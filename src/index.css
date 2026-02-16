@@ -2,7 +2,42 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  /* Handle safe area insets for notches and home bars */
+  --sat: env(safe-area-inset-top);
+  --sab: env(safe-area-inset-bottom);
+  --sal: env(safe-area-inset-left);
+  --sar: env(safe-area-inset-right);
+}
+
 body {
-    /* ✅ MODIFIED: Changed background from bg-gray-50 to white for a cleaner look */
-    @apply bg-white text-gray-800 antialiased;
+    /* MNC App Look: Clean white/off-white background */
+    @apply bg-[#F7F9FC] text-gray-800 antialiased;
+    /* Prevent rubber-banding on iOS */
+    overscroll-behavior-y: none; 
+}
+
+/* Scrollbar styling for a cleaner look */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent; 
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1; 
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8; 
+}
+
+/* Utility to respect bottom safe area */
+.pb-safe-area {
+  padding-bottom: var(--sab, 20px);
+}
+
+.pt-safe-area {
+  padding-top: var(--sat, 0px);
 }

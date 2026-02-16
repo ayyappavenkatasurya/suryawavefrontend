@@ -5,7 +5,7 @@ import { Link, NavLink } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faClock, faQuestionCircle, faChevronDown, faShareNodes, faSpinner, faTag, faTools, 
-  faCalendarAlt, faFolderOpen, faExternalLinkAlt, faTimes
+  faCalendarAlt, faFolderOpen, faExternalLinkAlt, faTimes, faFire
 } from '@fortawesome/free-solid-svg-icons';
 import toast from 'react-hot-toast';
 import QRCode from "react-qr-code";
@@ -102,6 +102,19 @@ export const ServiceCard = React.memo(({ service }) => {
   const isFree = service.currentPrice === 0;
   const [isSharing, setIsSharing] = useState(false);
 
+  // ✅ FEATURE: Format Order Count "10+"
+  const formatOrderCount = (count) => {
+    if (!count || count < 5) return null;
+    if (count < 10) return "5+ bought";
+    if (count < 50) return "10+ bought";
+    if (count < 100) return "50+ bought";
+    if (count < 500) return "100+ bought";
+    if (count < 1000) return "500+ bought";
+    return "1k+ bought";
+  };
+
+  const orderBadge = formatOrderCount(service.orderCount);
+
   const handleShareClick = async (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -131,56 +144,77 @@ export const ServiceCard = React.memo(({ service }) => {
   };
 
   return (
-    <div className="border rounded-lg overflow-hidden shadow-md bg-white flex flex-col relative group h-full transition-transform duration-300 hover:shadow-lg hover:-translate-y-1">
-      <button onClick={handleShareClick} disabled={isSharing} className="absolute top-3 right-3 z-10 bg-blue-600 text-white rounded-full h-9 w-9 flex items-center justify-center transition-colors duration-300 ease-in-out hover:bg-blue-700 disabled:bg-gray-400" aria-label="Share Service" title="Share Service">
-        {isSharing ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faShareNodes} />}
+    <div className="border border-gray-100 rounded-xl overflow-hidden shadow-sm bg-white flex flex-col relative group h-full transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+      <button onClick={handleShareClick} disabled={isSharing} className="absolute top-3 right-3 z-10 bg-white/90 backdrop-blur text-gray-600 rounded-full h-8 w-8 flex items-center justify-center transition-colors duration-300 ease-in-out hover:bg-blue-50 hover:text-blue-600 shadow-sm border border-gray-100 disabled:opacity-50" aria-label="Share Service" title="Share Service">
+        {isSharing ? <FontAwesomeIcon icon={faSpinner} spin className="text-xs" /> : <FontAwesomeIcon icon={faShareNodes} className="text-xs" />}
       </button>
 
       <Link to={`/services/${service.slug}`} className="flex flex-col flex-grow">
-        <div className="relative h-48">
-          <LazyImage src={service.imageUrl} alt={service.title} className="w-full h-full" />
-          {hasOffer && service.offer.name && !isFree && (
-            <div className="absolute top-2 left-2 bg-green-600 text-white text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1 shadow-sm">
-              <FontAwesomeIcon icon={faTag} /><span>{service.offer.name}</span>
-            </div>
-          )}
-          {isFree && (
-            <div className="absolute top-2 left-2 bg-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1 shadow-sm">
-              <FontAwesomeIcon icon={faTag} /><span>FREE</span>
-            </div>
+        <div className="relative h-48 overflow-hidden bg-gray-50">
+          <LazyImage src={service.imageUrl} alt={service.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+          
+          <div className="absolute top-2 left-2 flex flex-col gap-1 items-start">
+            {hasOffer && service.offer.name && !isFree && (
+                <div className="bg-green-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm flex items-center gap-1 uppercase tracking-wide">
+                <FontAwesomeIcon icon={faTag} /><span>{service.offer.name}</span>
+                </div>
+            )}
+            {isFree && (
+                <div className="bg-purple-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm flex items-center gap-1 uppercase tracking-wide">
+                <FontAwesomeIcon icon={faTag} /><span>FREE</span>
+                </div>
+            )}
+          </div>
+          
+          {/* ✅ FEATURE: Order Count Badge */}
+          {orderBadge && (
+             <div className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-sm text-white text-[10px] font-medium px-2 py-0.5 rounded-full flex items-center gap-1">
+                <FontAwesomeIcon icon={faFire} className="text-orange-400" />
+                {orderBadge}
+             </div>
           )}
         </div>
-        <div className="p-4 md:p-6 flex flex-col flex-grow">
-          <h3 className="text-lg font-semibold text-gray-800 mb-2 line-clamp-2 group-hover:text-google-blue transition-colors">{service.title}</h3>
-          <div className="flex items-center text-xs text-gray-500 mb-3"><FontAwesomeIcon icon={faCalendarAlt} className="mr-2" /><span>Posted on: {new Date(service.createdAt).toLocaleDateString()}</span></div>
-          <p className="text-gray-600 text-sm mb-4 flex-grow line-clamp-3">{service.description}</p>
+        
+        <div className="p-4 flex flex-col flex-grow">
+          <h3 className="text-base font-bold text-gray-900 mb-1.5 line-clamp-2 leading-tight group-hover:text-google-blue transition-colors">{service.title}</h3>
+          
+          <div className="flex items-center text-[11px] text-gray-400 mb-3 font-medium">
+             <FontAwesomeIcon icon={faCalendarAlt} className="mr-1.5" />
+             <span>{new Date(service.createdAt).toLocaleDateString()}</span>
+          </div>
+          
+          <p className="text-gray-600 text-sm mb-4 flex-grow line-clamp-2 leading-relaxed">{service.description}</p>
         </div>
       </Link>
       
-      <div className="p-4 md:p-6 pt-0 mt-auto">
+      <div className="px-4 pb-4 mt-auto">
         {hasOffer && !isFree && (
-            <div className="my-3">
+            <div className="mb-3 pt-2 border-t border-gray-50">
                 <CountdownTimer endDate={service.offer.endDate} />
             </div>
         )}
 
-        <div className="flex justify-between items-center pt-4 border-t">
+        <div className="flex justify-between items-end">
           {(service.price > 0 || service.serviceType === 'standard') ? (
-            <div className="flex items-baseline gap-2">
+            <div className="flex flex-col">
               {isFree ? (
-                  <span className="text-2xl font-bold text-purple-600">Free</span>
+                  <span className="text-xl font-bold text-purple-600">Free</span>
               ) : (
                   <>
-                    <span className={`text-2xl font-bold ${hasOffer ? 'text-green-600' : 'text-gray-900'}`}>₹{service.currentPrice}</span>
-                    {hasOffer && (<span className="text-lg font-medium text-gray-500 line-through">₹{service.price}</span>)}
+                    <div className="flex items-baseline gap-1.5">
+                        <span className={`text-xl font-bold ${hasOffer ? 'text-gray-900' : 'text-gray-900'}`}>₹{service.currentPrice}</span>
+                        {hasOffer && (<span className="text-xs font-medium text-gray-400 line-through">₹{service.price}</span>)}
+                    </div>
+                    {hasOffer && <span className="text-[10px] text-green-600 font-bold">Save ₹{service.price - service.currentPrice}</span>}
                   </>
               )}
             </div>
           ) : (
-            <span className="text-lg font-bold text-gray-900 flex items-center gap-2"><FontAwesomeIcon icon={faTools} className="text-google-yellow" /> Custom Project</span>
+            <span className="text-sm font-bold text-gray-700 flex items-center gap-1"><FontAwesomeIcon icon={faTools} className="text-google-yellow" /> Custom</span>
           )}
-          <NavLink to={`/services/${service.slug}`} className="px-4 py-2 md:px-6 bg-google-blue text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium">
-            {isFree ? 'Access Now' : 'Get Started'}
+          
+          <NavLink to={`/services/${service.slug}`} className="px-4 py-1.5 bg-blue-50 text-google-blue border border-blue-100 rounded-lg hover:bg-google-blue hover:text-white transition-all text-sm font-semibold shadow-sm hover:shadow">
+            {isFree ? 'View' : 'Details'}
           </NavLink>
         </div>
       </div>
@@ -193,19 +227,20 @@ ServiceCard.displayName = 'ServiceCard';
 
 export const ArticleCard = React.memo(({ article }) => {
   return (
-    <Link to={`/blog/${article.slug}`} className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 bg-white flex flex-col group h-full hover:-translate-y-1">
-      <div className="relative h-48">
-        <LazyImage src={article.featuredImage} alt={article.title} className="w-full h-full" />
+    <Link to={`/blog/${article.slug}`} className="border border-gray-100 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 bg-white flex flex-col group h-full hover:-translate-y-1">
+      <div className="relative h-48 overflow-hidden">
+        <LazyImage src={article.featuredImage} alt={article.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
       </div>
-      <div className="p-6 flex flex-col flex-grow">
-        <h3 className="text-xl font-semibold text-gray-800 mb-2 group-hover:text-google-blue transition-colors line-clamp-2">{article.title}</h3>
-        <div className="flex items-center text-xs text-gray-500 mb-3">
-          <FontAwesomeIcon icon={faCalendarAlt} className="mr-2" />
-          <span>Published on: {new Date(article.createdAt).toLocaleDateString()}</span>
+      <div className="p-5 flex flex-col flex-grow">
+        <div className="flex items-center text-[10px] text-gray-400 mb-2 uppercase tracking-wider font-semibold">
+          <FontAwesomeIcon icon={faCalendarAlt} className="mr-1.5" />
+          <span>{new Date(article.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</span>
         </div>
-        <p className="text-gray-600 text-sm mb-4 flex-grow line-clamp-3">{article.excerpt}</p>
-        <div className="mt-auto pt-4 border-t">
-            <span className="font-semibold text-google-blue">Read More &rarr;</span>
+        <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-google-blue transition-colors line-clamp-2 leading-snug">{article.title}</h3>
+        <p className="text-gray-600 text-sm mb-4 flex-grow line-clamp-3 leading-relaxed">{article.excerpt}</p>
+        <div className="mt-auto pt-3 border-t border-gray-50 flex items-center text-google-blue font-medium text-sm">
+            <span>Read Article</span>
+            <span className="ml-1 transition-transform group-hover:translate-x-1">&rarr;</span>
         </div>
       </div>
     </Link>
@@ -227,8 +262,8 @@ export const ServiceContentModal = ({ service, isOpen, onClose }) => {
           className="bg-white rounded-2xl shadow-2xl w-full max-w-lg relative transform transition-all overflow-hidden flex flex-col max-h-[85vh]" 
           onClick={e => e.stopPropagation()}
         >
-          <div className="p-6 border-b bg-gray-50 flex items-start gap-4">
-             <div className="w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden border shadow-sm bg-white">
+          <div className="p-6 border-b border-gray-100 bg-white flex items-start gap-4">
+             <div className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden border border-gray-200 shadow-sm">
                 <LazyImage 
                     src={service.imageUrl} 
                     alt={service.title} 
@@ -236,24 +271,24 @@ export const ServiceContentModal = ({ service, isOpen, onClose }) => {
                 />
              </div>
              <div className="flex-1 pr-8">
-                <h3 className="text-xl font-bold text-gray-900 leading-snug line-clamp-2">
+                <h3 className="text-lg font-bold text-gray-900 leading-tight line-clamp-2">
                     {service.title}
                 </h3>
-                <p className="text-sm text-gray-500 mt-1">
-                    {service.contentUrls?.length || 0} Resource{service.contentUrls?.length !== 1 ? 's' : ''} Available
+                <p className="text-xs text-gray-500 mt-1 font-medium bg-gray-100 inline-block px-2 py-0.5 rounded">
+                    {service.contentUrls?.length || 0} Resource{service.contentUrls?.length !== 1 ? 's' : ''}
                 </p>
              </div>
              <button 
                 onClick={onClose} 
-                className="absolute top-4 right-4 p-2 bg-gray-200 text-gray-600 hover:bg-gray-300 hover:text-gray-900 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400"
+                className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors focus:outline-none"
                 aria-label="Close modal"
              >
                 <FontAwesomeIcon icon={faTimes} className="text-lg w-5 h-5 block" />
              </button>
           </div>
 
-          <div className="p-6 overflow-y-auto custom-scrollbar bg-white">
-            <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+          <div className="p-6 overflow-y-auto custom-scrollbar bg-gray-50/50">
+            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">
                 Downloads & Links
             </h4>
             <div className="space-y-3">
@@ -264,34 +299,34 @@ export const ServiceContentModal = ({ service, isOpen, onClose }) => {
                         target="_blank"
                         rel="noopener noreferrer"
                         key={index}
-                        className="group flex items-center p-4 bg-white border border-gray-200 rounded-xl hover:border-google-blue hover:shadow-md hover:bg-blue-50 transition-all duration-200"
+                        className="group flex items-center p-3 bg-white border border-gray-200 rounded-xl hover:border-blue-200 hover:shadow-md hover:shadow-blue-50 transition-all duration-200"
                     >
-                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-google-blue flex-shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                        <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-google-blue flex-shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-colors">
                             <FontAwesomeIcon icon={faFolderOpen} />
                         </div>
-                        <div className="ml-4 flex-grow min-w-0">
-                            <p className="text-base font-semibold text-gray-800 truncate group-hover:text-google-blue">
+                        <div className="ml-3 flex-grow min-w-0">
+                            <p className="text-sm font-semibold text-gray-800 truncate group-hover:text-google-blue transition-colors">
                                 {content.name || `Resource ${index + 1}`}
                             </p>
-                            <p className="text-xs text-gray-500 truncate">Click to open</p>
+                            <p className="text-[10px] text-gray-400 truncate">Click to access content</p>
                         </div>
-                        <FontAwesomeIcon icon={faExternalLinkAlt} className="text-gray-400 group-hover:text-google-blue ml-2" />
+                        <FontAwesomeIcon icon={faExternalLinkAlt} className="text-gray-300 group-hover:text-google-blue ml-2 text-sm" />
                     </a>
                   ))
               ) : (
-                  <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg border border-dashed">
-                      <p>No resources have been added to this service yet.</p>
+                  <div className="text-center py-8 text-gray-500 bg-white rounded-xl border border-dashed">
+                      <p className="text-sm">No resources available yet.</p>
                   </div>
               )}
             </div>
           </div>
 
-          <div className="p-4 border-t bg-gray-50 flex justify-end">
+          <div className="p-4 border-t border-gray-100 bg-white flex justify-end">
              <button 
                 onClick={onClose}
-                className="px-5 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-100 transition-colors"
+                className="px-6 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors shadow-sm"
              >
-                Close
+                Done
              </button>
           </div>
         </div>
@@ -326,36 +361,63 @@ export const PaymentComponent = React.memo(({ title, description, amount, upiId,
     };
 
     return (
-        <div className="max-w-2xl mx-auto bg-white p-6 sm:p-8 rounded-lg shadow-lg border">
-            <h1 className="text-2xl font-bold text-center mb-2">{title}</h1>
-            <p className="text-center text-gray-600 mb-6">{description}</p>
-            
-            <div className="text-center p-6 bg-gray-50 rounded-lg">
-                <p className="mb-4 font-medium text-gray-700">
-                    Scan and Pay with your UPI App
-                </p>
-                <div className="flex justify-center items-center mb-4 w-full h-[200px]">
-                    {upiLink ? (
-                        <QRCode value={upiLink} size={200} className="h-full w-auto max-w-full" />
-                    ) : (
-                        <div className="flex flex-col items-center justify-center text-gray-500">
-                            <FontAwesomeIcon icon={faSpinner} spin size="3x" />
-                            <p className="mt-4 text-sm">Generating Secure QR Code...</p>
-                        </div>
-                    )}
-                </div>
+        <div className="max-w-xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+            <div className="bg-google-blue p-6 text-white text-center">
+                <h1 className="text-2xl font-bold mb-1">{title}</h1>
+                <p className="opacity-90 text-sm">{description}</p>
             </div>
+            
+            <div className="p-6 sm:p-8">
+                <div className="text-center mb-8">
+                    <p className="mb-4 text-sm font-medium text-gray-500 uppercase tracking-wide">
+                        Scan QR Code to Pay
+                    </p>
+                    <div className="inline-block p-4 bg-white border rounded-xl shadow-sm">
+                        <div className="w-48 h-48 flex items-center justify-center">
+                            {upiLink ? (
+                                <QRCode value={upiLink} size={192} className="h-full w-full" />
+                            ) : (
+                                <div className="flex flex-col items-center justify-center text-gray-400">
+                                    <FontAwesomeIcon icon={faSpinner} spin size="2x" />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    <div className="mt-4 flex justify-center gap-4">
+                         <a href={upiLink} className="text-google-blue hover:underline text-sm font-medium">Open UPI App</a>
+                    </div>
+                </div>
 
-            <div className="mt-8">
-                <h2 className="font-semibold text-lg text-center mb-4">Please submit your UPI Reference ID</h2>
-                <form onSubmit={handleSubmit}>
-                    <label className="block text-sm font-medium text-gray-700">UTR Reference ID</label>
-                    <input type="text" value={transactionId} onChange={(e) => setTransactionId(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-google-blue focus:border-google-blue" placeholder="e.g., 238916381623" />
-                    <p className="text-xs text-gray-500 mt-2">Verification may take up to 20 minutes. You will be notified via email upon confirmation.</p>
-                    <button type="submit" disabled={loading} className="w-full mt-4 flex justify-center py-3 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-700 disabled:bg-green-400 transition-colors">
-                        {loading ? <FontAwesomeIcon icon={faSpinner} spin /> : 'Submit for Verification'}
-                    </button>
-                </form>
+                <div className="border-t border-gray-100 pt-6">
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <div>
+                            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">UTR / Transaction ID</label>
+                            <input 
+                                type="text" 
+                                value={transactionId} 
+                                onChange={(e) => setTransactionId(e.target.value)} 
+                                required 
+                                className="block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-google-blue focus:border-transparent transition-all font-mono text-sm" 
+                                placeholder="Enter 12-digit UTR ID" 
+                            />
+                        </div>
+                        
+                        <div className="bg-blue-50 p-3 rounded-lg flex gap-3 items-start">
+                            <FontAwesomeIcon icon={faQuestionCircle} className="text-google-blue mt-0.5 text-sm" />
+                            <p className="text-xs text-blue-800 leading-relaxed">
+                                Verification typically takes <strong>10-20 minutes</strong>. You will be notified via email immediately upon confirmation.
+                            </p>
+                        </div>
+
+                        <button 
+                            type="submit" 
+                            disabled={loading} 
+                            className="w-full py-3.5 bg-green-600 text-white rounded-xl font-bold shadow-md hover:bg-green-700 hover:shadow-lg disabled:opacity-70 disabled:shadow-none transition-all transform active:scale-[0.98]"
+                        >
+                            {loading ? <span className="flex items-center justify-center gap-2"><FontAwesomeIcon icon={faSpinner} spin /> Verifying...</span> : 'Submit Payment Details'}
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
     );

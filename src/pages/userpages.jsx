@@ -11,7 +11,7 @@ import { requestForToken, unsubscribeCurrentToken } from '../firebase.jsx';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
-    faHistory, faSpinner, faFolderOpen, faShareNodes, faBell, faBellSlash, faSignOutAlt, faUserShield
+    faHistory, faSpinner, faFolderOpen, faShareNodes, faBell, faBellSlash, faSignOutAlt, faUserShield, faTrashAlt, faExclamationTriangle
 } from '@fortawesome/free-solid-svg-icons';
 import { faWhatsapp, faGoogle } from '@fortawesome/free-brands-svg-icons';
 import { LazyImage } from '../components/LazyImage';
@@ -87,6 +87,7 @@ export const ProfilePage = () => {
     const { user, logout, loading } = useAuth();
     const { pathname } = useLocation();
     const navigate = useNavigate();
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const getInitials = (email) => {
         if (!email) return '';
@@ -97,6 +98,26 @@ export const ProfilePage = () => {
         logout();
         toast.success("Logged out successfully.");
         navigate('/login');
+    };
+
+    // ✅ GOOGLE PLAY REQUIREMENT: Account Deletion Logic
+    const handleDeleteAccount = async () => {
+        if (!window.confirm("Are you sure? This will PERMANENTLY delete your account and all associated data. This action cannot be undone.")) {
+            return;
+        }
+        
+        setIsDeleting(true);
+        try {
+            await api.delete('/api/auth/delete');
+            toast.success("Account deleted successfully.");
+            logout(); // Clear local state
+            navigate('/');
+        } catch (error) {
+            toast.error("Failed to delete account. Please try again or contact support.");
+            console.error("Delete account error:", error);
+        } finally {
+            setIsDeleting(false);
+        }
     };
 
     if (loading) return <Spinner />;
@@ -131,11 +152,27 @@ export const ProfilePage = () => {
 
                     <button
                         onClick={handleLogout}
-                        className="w-full bg-white p-4 rounded-lg shadow-sm border hover:bg-gray-50 transition-colors text-red-600 font-semibold flex items-center gap-3"
+                        className="w-full bg-white p-4 rounded-lg shadow-sm border hover:bg-gray-50 transition-colors text-blue-600 font-semibold flex items-center gap-3"
                     >
                         <FontAwesomeIcon icon={faSignOutAlt} />
                         Logout
                     </button>
+
+                    {/* ✅ GOOGLE PLAY REQUIREMENT: Delete Account Button */}
+                    <div className="pt-4 border-t">
+                        <button
+                            onClick={handleDeleteAccount}
+                            disabled={isDeleting}
+                            className="w-full bg-red-50 p-4 rounded-lg shadow-sm border border-red-200 hover:bg-red-100 transition-colors text-red-700 font-semibold flex items-center gap-3 justify-center"
+                        >
+                            {isDeleting ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faTrashAlt} />}
+                            Delete My Account
+                        </button>
+                        <p className="text-xs text-gray-500 mt-2 text-center">
+                            <FontAwesomeIcon icon={faExclamationTriangle} className="mr-1 text-orange-500" />
+                            Warning: Deleting your account will permanently remove your data, including purchased services and project requests.
+                        </p>
+                    </div>
                 </div>
             </div>
         </>
