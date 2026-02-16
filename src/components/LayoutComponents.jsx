@@ -159,7 +159,8 @@ export const Header = React.memo(() => {
   );
 
   return (
-    <header className="bg-white/95 backdrop-blur-sm sticky top-0 z-50 shadow-sm border-b border-gray-100 transition-all duration-300">
+    // ✅ FIXED: Removed border-b and shadow-sm to get rid of the top line.
+    <header className="bg-white/95 backdrop-blur-sm sticky top-0 z-50 transition-all duration-300">
       <nav className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex-shrink-0">
@@ -257,8 +258,8 @@ export const BottomNav = () => {
   );
 
   return (
-    // ✅ FIX: Fixed BG White + Safe Area Inset bottom means system bar looks seamlessly white
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white z-40 flex justify-around items-center h-20 px-1 border-t pb-safe-area shadow-[0_-1px_3px_rgba(0,0,0,0.05)]">
+    // ✅ FIXED: Removed border-t and shadow. Kept pure bg-white to ensure no lines and full white background.
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white z-40 flex justify-around items-center h-20 px-1 pb-safe-area">
       <NavItem to="/dashboard" icon={faTachometerAlt} label="Dashboard" />
       <NavItem to="/services" icon={faLayerGroup} label="Services" />
       <NavItem to="/blog" icon={faNewspaper} label="Blog" />

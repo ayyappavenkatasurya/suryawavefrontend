@@ -289,9 +289,11 @@ export const ServiceContentModal = ({ service, isOpen, onClose }) => {
                         target="_blank"
                         rel="noopener noreferrer"
                         key={index}
-                        className="group flex items-center p-3 bg-white border border-gray-200 rounded-xl hover:border-blue-200 hover:shadow-md hover:shadow-blue-50 transition-all duration-200"
+                        // ✅ FIX: Permanently applying the "active/hover" styles (blue border, shadow)
+                        className="group flex items-center p-3 bg-white border border-blue-200 rounded-xl shadow-md shadow-blue-50 transition-all duration-200"
                     >
-                        <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-google-blue flex-shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                        {/* ✅ FIX: Permanently applying the blue background and white text for the icon */}
+                        <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center text-white flex-shrink-0 transition-colors">
                             <FontAwesomeIcon icon={faFolderOpen} />
                         </div>
                         <div className="ml-3 flex-grow min-w-0">
