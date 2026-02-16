@@ -2,15 +2,6 @@
 
 import { initializeApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage, deleteToken } from 'firebase/messaging';
-import { 
-  getAuth, 
-  GoogleAuthProvider, 
-  signInWithPopup, 
-  signInWithRedirect, 
-  getRedirectResult,
-  setPersistence, 
-  browserLocalPersistence 
-} from 'firebase/auth'; 
 import api from './services'; 
 import toast from 'react-hot-toast';
 
@@ -25,18 +16,10 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-let app, auth, messaging, googleProvider;
+let app, messaging;
 
 try {
     app = initializeApp(firebaseConfig);
-    auth = getAuth(app);
-    
-    // Ensure auth state persists
-    setPersistence(auth, browserLocalPersistence).catch((error) => {
-        console.error("Firebase persistence error:", error);
-    });
-
-    googleProvider = new GoogleAuthProvider();
     
     // Only initialize Messaging in a browser environment that supports Service Workers
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window) {
@@ -50,14 +33,7 @@ try {
     console.warn("Firebase initialization warning:", error.message);
 }
 
-export { 
-  auth, 
-  messaging, 
-  googleProvider, 
-  signInWithPopup, 
-  signInWithRedirect, 
-  getRedirectResult 
-};
+export { messaging };
 
 // ==========================================
 // Helper Functions for Notifications

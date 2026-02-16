@@ -1,21 +1,14 @@
 // frontend/src/pages/authpages.jsx
 
 import React, { useState, useEffect } from 'react';
-// ✅ FIXED: Imported useSearchParams which was missing
 import { useLocation, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { useGoogleLogin } from '@react-oauth/google';
 import { SEO } from '../components';
 import { useAuth } from '../context';
 import api from '../services';
-// ✅ MODIFIED: We only need Popup flow now
-import { 
-  auth, 
-  googleProvider, 
-  signInWithPopup
-} from '../firebase';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-// ✅ FIXED: Imported faKey which was missing for the ResetPasswordPage
 import { faEnvelope, faLock, faSpinner, faKey } from '@fortawesome/free-solid-svg-icons';
 
 // ========== LOGIN PAGE ==========
@@ -51,55 +44,34 @@ export const LoginPage = () => {
       }
     };
 
-    // ✅ FIXED: Robust Google Login using Popup (Works best for PWA/Mobile cross-domain)
-    const handleGoogleLogin = async () => {
-      setIsGoogleLoading(true);
-      const toastId = toast.loading('Opening Google Sign In...');
-      
-      try {
-        // 1. Open Popup (This works on mobile too, opening a secure tab)
-        const result = await signInWithPopup(auth, googleProvider);
-        const firebaseUser = result.user;
-        
-        toast.loading('Authenticating with server...', { id: toastId });
-
-        // 2. Get ID Token
-        const idToken = await firebaseUser.getIdToken(true);
-
-        // 3. Send to Backend
-        const response = await api.post('/api/auth/google', { idToken });
-
-        // 4. Login in Context
-        login(response.data, response.data.token);
-        
-        toast.success('Logged in with Google!', { id: toastId });
-        navigate(from, { replace: true });
-        
-      } catch (error) {
-        console.error("Google Login Error:", error);
-        
-        let errorMsg = 'Google Login Failed';
-        if (error.code === 'auth/popup-closed-by-user') {
-            errorMsg = 'Login cancelled';
-        } else if (error.code === 'auth/network-request-failed') {
-            errorMsg = 'Network error. Check your connection.';
-        } else if (error.code === 'auth/popup-blocked') {
-            errorMsg = 'Popup blocked. Please allow popups for this site.';
-        } else if (error.response?.data?.message) {
-            errorMsg = error.response.data.message;
+    // ✅ NEW: Professional Google Login (Auth Code Flow)
+    const googleLogin = useGoogleLogin({
+      onSuccess: async (codeResponse) => {
+        setIsGoogleLoading(true);
+        const toastId = toast.loading('Verifying securely with Google...');
+        try {
+          // Send the authorization code to backend
+          const { data } = await api.post('/api/auth/google', { 
+            code: codeResponse.code 
+          });
+          
+          login(data, data.token);
+          toast.success('Logged in with Google!', { id: toastId });
+          navigate(from, { replace: true });
+        } catch (error) {
+          console.error("Google Auth Error:", error);
+          toast.error(error.response?.data?.message || 'Google Login Failed', { id: toastId });
+        } finally {
+          setIsGoogleLoading(false);
         }
-        
-        // Don't show error toast if user simply closed the popup
-        if (error.code !== 'auth/popup-closed-by-user') {
-            toast.error(errorMsg, { id: toastId });
-        } else {
-            toast.dismiss(toastId);
-        }
-      } finally {
+      },
+      onError: () => {
+        toast.error('Google Login Failed to Initialize');
         setIsGoogleLoading(false);
-      }
-    };
-  
+      },
+      flow: 'auth-code', // Secure flow
+    });
+
     return (
       <>
         <SEO title="Login" description="Sign in to your Surya Wave account." keywords="login, sign in" path={location.pathname} />
@@ -108,14 +80,14 @@ export const LoginPage = () => {
             <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">Sign in to your account</h2>
             
             <button 
-              onClick={handleGoogleLogin}
+              onClick={() => googleLogin()}
               disabled={isGoogleLoading}
               className="w-full flex items-center justify-center gap-3 py-2.5 px-4 mb-6 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {isGoogleLoading ? (
                   <>
                     <FontAwesomeIcon icon={faSpinner} spin className="text-google-blue" />
-                    <span>Authenticating...</span>
+                    <span>Verifying...</span>
                   </>
               ) : (
                   <>
@@ -125,7 +97,7 @@ export const LoginPage = () => {
                         <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.2 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
                         <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
                     </svg>
-                    Sign in with Google
+                    Continue with Google
                   </>
               )}
             </button>
