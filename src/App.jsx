@@ -14,7 +14,7 @@ import {
 } from './components';
 import { onMessageListener, requestForToken } from './firebase.jsx';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTimes, faBell } from '@fortawesome/free-solid-svg-icons';
+import { faTimes, faBell, faCheckCircle } from '@fortawesome/free-solid-svg-icons';
 import { AnimatePresence, motion } from 'framer-motion';
 
 import { useAuth } from './context.jsx';
@@ -218,8 +218,24 @@ function App() {
                         requestForToken().then(token => {
                             if (token) {
                                 api.post('/api/notifications/subscribe', { token }).catch(err => console.warn("Silent sub fail", err));
-                                // ✅ FIXED: Added specific duration (3000ms) so it closes automatically and feels snappy
-                                toast.success("Notifications Enabled!", { duration: 3000 });
+                                
+                                // ✅ FIXED: Intelligent Custom Toast for Mobile
+                                // We use a custom component with onClick dismiss to prevent it from getting stuck due to mobile hover/touch behavior.
+                                toast.custom((tt) => (
+                                  <div 
+                                    onClick={() => toast.dismiss(tt.id)}
+                                    className={`${tt.visible ? 'animate-enter' : 'animate-leave'} 
+                                      max-w-xs w-full bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 
+                                      flex items-center p-4 cursor-pointer transform transition-all duration-300`}
+                                  >
+                                    <div className="flex-shrink-0">
+                                      <FontAwesomeIcon icon={faCheckCircle} className="text-green-500 text-2xl" />
+                                    </div>
+                                    <div className="ml-3 flex-1 pt-0.5">
+                                      <p className="text-sm font-medium text-gray-900">Notifications Enabled!</p>
+                                    </div>
+                                  </div>
+                                ), { duration: 3000, position: 'top-center' });
                             }
                         });
                     }}

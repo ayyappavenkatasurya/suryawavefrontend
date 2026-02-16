@@ -41,3 +41,34 @@ body {
 .pt-safe-area {
   padding-top: var(--sat, 0px);
 }
+
+/* ✅ Toast Animations for react-hot-toast custom components */
+@keyframes toast-enter {
+  0% {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes toast-leave {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+}
+
+.animate-enter {
+  animation: toast-enter 0.2s cubic-bezier(0.21, 1.02, 0.73, 1) forwards;
+}
+
+.animate-leave {
+  animation: toast-leave 0.15s cubic-bezier(0.06, 0.71, 0.55, 1) forwards;
+}
