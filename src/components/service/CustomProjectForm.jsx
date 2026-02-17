@@ -54,7 +54,6 @@ export const CustomProjectForm = ({ service, onSubmit }) => {
                 />
             );
         }
-        // ✅ EXACTLY LIKE STANDARD SERVICE PAGE CONTENT
         if (block.blockType === 'file') {
             return (
                 <div key={index} className="my-4 p-4 border rounded-lg bg-gray-50">
@@ -80,23 +79,23 @@ export const CustomProjectForm = ({ service, onSubmit }) => {
                         {block.label} {block.required && <span className="text-red-500">*</span>}
                     </label>
                     
+                    {/* ✅ FIX: Removed placeholder */}
                     {block.inputType === 'text' && (
                         <input 
                             type="text" 
                             onChange={(e) => handleChange(block.label, e.target.value)} 
                             required={block.required} 
                             className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-google-blue focus:border-google-blue transition-all"
-                            placeholder={`Enter ${block.label}`}
                         />
                     )}
                     
+                    {/* ✅ FIX: Removed placeholder */}
                     {block.inputType === 'textarea' && (
                         <textarea 
                             rows="5" 
                             onChange={(e) => handleChange(block.label, e.target.value)} 
                             required={block.required} 
                             className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-google-blue focus:border-google-blue transition-all"
-                            placeholder={`Enter details for ${block.label}`}
                         />
                     )}
                     
