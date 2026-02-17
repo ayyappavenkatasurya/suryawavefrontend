@@ -10,7 +10,8 @@ import {
     faCheck, 
     faLayerGroup, 
     faRocket, 
-    faGift 
+    faGift,
+    faSync
 } from '@fortawesome/free-solid-svg-icons';
 import Fuse from 'fuse.js';
 import api from '../../services';
@@ -23,13 +24,14 @@ export const ServicesPage = () => {
     const filterRef = useRef(null);
     const { pathname } = useLocation();
   
-    // Fetch Services
-    const { data: services = [], isLoading: servicesLoading } = useQuery({
+    // Fetch Services with Live Updates (Every 5 seconds)
+    const { data: services = [], isLoading: servicesLoading, isFetching } = useQuery({
         queryKey: ['services'],
         queryFn: async () => {
             const { data } = await api.get('/api/services');
             return data;
         },
+        refetchInterval: 5000, // ✅ LIVE: Updates "Ordered Count" every 5 seconds
         staleTime: 1000 * 60 * 5, 
     });
 
@@ -140,7 +142,15 @@ export const ServicesPage = () => {
             </SEO>
             
             <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8 min-h-screen">
-                <h1 className="text-3xl font-bold text-center mb-2 text-gray-900">Explore Services</h1>
+                <div className="flex justify-center items-center gap-3 mb-2">
+                    <h1 className="text-3xl font-bold text-gray-900">Explore Services</h1>
+                    {/* Live Indicator if updating in background */}
+                    {isFetching && !servicesLoading && (
+                        <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full flex items-center gap-1 animate-pulse">
+                            <FontAwesomeIcon icon={faSync} spin /> Live
+                        </span>
+                    )}
+                </div>
                 
                 {/* Search & Filter Bar */}
                 <div className="max-w-2xl mx-auto mb-10 relative z-20" ref={filterRef}>

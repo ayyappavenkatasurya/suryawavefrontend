@@ -1,9 +1,9 @@
 // frontend/src/pages/admin/AdminDashboard.jsx
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'; // Added useQuery
 import { SEO } from '../../components';
 import api from '../../services';
 import Fuse from 'fuse.js';
@@ -11,7 +11,7 @@ import Fuse from 'fuse.js';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
     faClipboardList, faUsers, faLayerGroup, 
-    faTools, faNewspaper, faQuestionCircle, faChartBar, faSearch
+    faTools, faNewspaper, faQuestionCircle, faChartBar, faSearch, faSync
 } from '@fortawesome/free-solid-svg-icons';
 
 import { StatsView } from './views/StatsView';
@@ -30,7 +30,14 @@ export const AdminDashboardPage = () => {
 
     // Global loading state for mutations
     const [actionLoading, setActionLoading] = useState({ type: null, id: null });
-    const [approveModalInfo, setApproveModalInfo] = useState({ isOpen: false, requestId: null, advanceAmount: '' });
+
+    // === REAL-TIME DATA FETCHING (Polling Stats) ===
+    // We fetch stats here to show the "pending count" or live revenue, passing data down or relying on cached query key in StatsView
+    const { isFetching: isStatsFetching } = useQuery({
+        queryKey: ['adminStats'],
+        queryFn: async () => (await api.get('/api/admin/stats')).data,
+        refetchInterval: 5000, // Poll every 5s for new orders
+    });
 
     // === MUTATIONS (With Optimistic Updates) ===
 
@@ -40,13 +47,6 @@ export const AdminDashboardPage = () => {
         onMutate: async (id) => {
             setActionLoading({ type: 'approve', id });
             await queryClient.cancelQueries(['adminOrders']);
-            const prev = queryClient.getQueryData(['adminOrders']);
-            queryClient.setQueryData(['adminOrders'], (old) => old ? old.filter(o => o._id !== id) : []);
-            return { prev };
-        },
-        onError: (err, id, context) => {
-            queryClient.setQueryData(['adminOrders'], context.prev);
-            toast.error("Failed to approve order.");
         },
         onSettled: () => {
             setActionLoading({ type: null, id: null });
@@ -61,13 +61,6 @@ export const AdminDashboardPage = () => {
         onMutate: async (id) => {
             setActionLoading({ type: 'reject', id });
             await queryClient.cancelQueries(['adminOrders']);
-            const prev = queryClient.getQueryData(['adminOrders']);
-            queryClient.setQueryData(['adminOrders'], (old) => old ? old.filter(o => o._id !== id) : []);
-            return { prev };
-        },
-        onError: (err, id, context) => {
-            queryClient.setQueryData(['adminOrders'], context.prev);
-            toast.error("Failed to reject order.");
         },
         onSettled: () => {
             setActionLoading({ type: null, id: null });
@@ -80,17 +73,6 @@ export const AdminDashboardPage = () => {
     // Service Management
     const deleteServiceMutation = useMutation({
         mutationFn: (id) => api.delete(`/api/services/${id}`),
-        onMutate: async (id) => {
-            setActionLoading({ type: 'delete-service', id });
-            await queryClient.cancelQueries(['services']);
-            const prev = queryClient.getQueryData(['services']);
-            queryClient.setQueryData(['services'], (old) => old ? old.filter(s => s._id !== id) : []);
-            return { prev };
-        },
-        onError: (err, id, context) => {
-            queryClient.setQueryData(['services'], context.prev);
-            toast.error("Failed to delete service.");
-        },
         onSettled: () => {
             setActionLoading({ type: null, id: null });
             queryClient.invalidateQueries(['services']);
@@ -112,17 +94,6 @@ export const AdminDashboardPage = () => {
                 queryClient.invalidateQueries(['adminProjectRequests']);
             } catch(e) { toast.error("Failed to approve request."); } 
             finally { setActionLoading({ type: null, id: null }); }
-        } else {
-            // Logic for variable advance amount if needed, or simplified:
-            // For now, assuming fixed advance from service or default 0.
-            // Complex modal logic can stay or be moved to view if specific to view.
-             setActionLoading({ type: 'approve-req', id: request._id });
-             try {
-                await api.put(`/api/admin/project-requests/${request._id}/approve-request`);
-                toast.success('Request Approved!');
-                queryClient.invalidateQueries(['adminProjectRequests']);
-             } catch(e) { toast.error("Failed to approve request."); }
-             finally { setActionLoading({ type: null, id: null }); }
         }
     };
 
@@ -188,7 +159,14 @@ export const AdminDashboardPage = () => {
         <SEO title="Admin Dashboard" description="Admin control panel." keywords="admin, dashboard" path={pathname}/>
         <div className="container mx-auto py-12 px-4 sm:px-6 lg:px-8 text-left">
           <div className="flex flex-col md:flex-row justify-between items-center mb-6">
-            <h1 className="text-3xl font-bold mb-4 md:mb-0">Admin Dashboard</h1>
+            <div className="flex items-center gap-3 mb-4 md:mb-0">
+                <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+                {isStatsFetching && (
+                    <span className="text-xs font-medium text-google-blue bg-blue-50 px-2 py-1 rounded-full flex items-center gap-1 animate-pulse">
+                        <FontAwesomeIcon icon={faSync} spin /> Live
+                    </span>
+                )}
+            </div>
             {view !== 'stats' && (
                 <div className="relative w-full md:w-64">
                     <input 

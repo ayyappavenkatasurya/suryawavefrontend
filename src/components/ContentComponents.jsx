@@ -5,7 +5,7 @@ import { Link, NavLink } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faClock, faQuestionCircle, faChevronDown, faShareNodes, faSpinner, faTag, 
-  faCalendarAlt, faFolderOpen, faExternalLinkAlt, faTimes, faFire, faRocket, faGift
+  faCalendarAlt, faFolderOpen, faExternalLinkAlt, faTimes, faFire, faRocket, faGift, faExclamationTriangle
 } from '@fortawesome/free-solid-svg-icons';
 import toast from 'react-hot-toast';
 import QRCode from "react-qr-code";
@@ -329,7 +329,8 @@ export const ServiceContentModal = ({ service, isOpen, onClose }) => {
 export const PaymentComponent = React.memo(({ title, description, amount, upiId, upiName, upiNote, onSubmit, loading }) => {
     const [transactionId, setTransactionId] = useState('');
     const [upiLink, setUpiLink] = useState('');
-    
+    const [validationError, setValidationError] = useState('');
+
     useEffect(() => {
         const params = new URLSearchParams({
             pa: upiId,
@@ -342,11 +343,36 @@ export const PaymentComponent = React.memo(({ title, description, amount, upiId,
         setUpiLink(`upi://pay?${params.toString()}`);
     }, [amount, upiId, upiName, upiNote]);
 
+    const handleInputChange = (e) => {
+        const value = e.target.value.toUpperCase(); // Force uppercase
+        // Allow alphanumeric only, remove special chars
+        const cleanValue = value.replace(/[^A-Z0-9]/g, '');
+        setTransactionId(cleanValue);
+        
+        if (cleanValue.length > 0 && cleanValue.length < 12) {
+            setValidationError('UTR must be at least 12 characters.');
+        } else if (cleanValue.length > 25) {
+            setValidationError('UTR is too long.');
+        } else {
+            setValidationError('');
+        }
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
+        
+        // Frontend "Dummy" check
         if (!transactionId.trim()) {
             return toast.error("Please enter the Transaction ID.");
         }
+        if (transactionId.length < 12) {
+            return toast.error("Invalid UTR length. Must be 12+ characters.");
+        }
+        // Basic fake check
+        if (/^0+$/.test(transactionId) || /^1+$/.test(transactionId)) {
+             return toast.error("Please enter a valid Transaction ID.");
+        }
+
         onSubmit(transactionId);
     };
 
@@ -385,23 +411,26 @@ export const PaymentComponent = React.memo(({ title, description, amount, upiId,
                             <input 
                                 type="text" 
                                 value={transactionId} 
-                                onChange={(e) => setTransactionId(e.target.value)} 
+                                onChange={handleInputChange} 
                                 required 
-                                className="block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-google-blue focus:border-transparent transition-all font-mono text-sm" 
+                                maxLength={25}
+                                className={`block w-full px-4 py-3 bg-gray-50 border ${validationError ? 'border-red-300 focus:ring-red-200' : 'border-gray-200 focus:ring-google-blue'} rounded-lg focus:bg-white focus:ring-2 focus:border-transparent transition-all font-mono text-sm`} 
                                 placeholder="Enter 12-digit UTR ID" 
                             />
+                            {validationError && <p className="text-xs text-red-500 mt-1">{validationError}</p>}
                         </div>
                         
                         <div className="bg-blue-50 p-3 rounded-lg flex gap-3 items-start">
                             <FontAwesomeIcon icon={faQuestionCircle} className="text-google-blue mt-0.5 text-sm" />
                             <p className="text-xs text-blue-800 leading-relaxed">
-                                Verification typically takes <strong>10-20 minutes</strong>. You will be notified via email immediately upon confirmation.
+                                Verification typically takes <strong>10-20 minutes</strong>. 
+                                <br/><span className="text-red-600 font-bold">Warning:</span> Fake/Dummy UTRs will lead to a temporary ban on new orders.
                             </p>
                         </div>
 
                         <button 
                             type="submit" 
-                            disabled={loading} 
+                            disabled={loading || !!validationError} 
                             className="w-full py-3.5 bg-green-600 text-white rounded-xl font-bold shadow-md hover:bg-green-700 hover:shadow-lg disabled:opacity-70 disabled:shadow-none transition-all transform active:scale-[0.98]"
                         >
                             {loading ? <span className="flex items-center justify-center gap-2"><FontAwesomeIcon icon={faSpinner} spin /> Verifying...</span> : 'Submit Payment Details'}

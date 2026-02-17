@@ -43,7 +43,6 @@ import {
   NotFoundPage,
 } from './pages';
 
-// Animation wrapper for consistent page transitions
 const PageWrapper = ({ children }) => (
   <motion.div
     initial={{ opacity: 0, y: 10 }}
@@ -94,7 +93,6 @@ const AnimatedRoutes = () => {
 function App() {
   const { user } = useAuth();
 
-  // ✅ Splash Screen Logic
   useEffect(() => {
     const splash = document.getElementById('splash-screen');
     if (splash) {
@@ -126,7 +124,7 @@ function App() {
           <div
             className={`${
               t.visible ? 'animate-enter' : 'animate-leave'
-            } max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden`}
+            } max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden border`}
           >
             {image && (
               <img 
@@ -149,10 +147,10 @@ function App() {
                   />
                 </div>
                 <div className="ml-3 flex-1 text-left">
-                  <p className="text-sm font-medium text-gray-900 cursor-pointer" onClick={() => { if (url) window.open(url, '_blank', 'noopener,noreferrer'); toast.dismiss(t.id); }}>
+                  <p className="text-sm font-bold text-gray-900 cursor-pointer" onClick={() => { if (url) window.open(url, '_blank', 'noopener,noreferrer'); toast.dismiss(t.id); }}>
                     {title}
                   </p>
-                  <p className="mt-1 text-sm text-gray-500 cursor-pointer" onClick={() => { if (url) window.open(url, '_blank', 'noopener,noreferrer'); toast.dismiss(t.id); }}>
+                  <p className="mt-1 text-sm text-gray-600 cursor-pointer" onClick={() => { if (url) window.open(url, '_blank', 'noopener,noreferrer'); toast.dismiss(t.id); }}>
                     {body}
                   </p>
                 </div>
@@ -162,7 +160,7 @@ function App() {
                     className="bg-white rounded-md inline-flex text-gray-400 hover:text-gray-500 focus:outline-none"
                   >
                     <span className="sr-only">Close</span>
-                    <FontAwesomeIcon icon={faTimes} className="h-5 w-5" />
+                    <FontAwesomeIcon icon={faTimes} className="h-4 w-4" />
                   </button>
                 </div>
               </div>
@@ -193,38 +191,31 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  // Handle notification permission prompt (Allow / Later)
   useEffect(() => {
     if (!user) return;
-
     if ('Notification' in window && Notification.permission === 'default') {
       const toastId = toast.custom(
         (t) => (
-          <div className={`${t.visible ? 'animate-enter' : 'animate-leave'} max-w-md w-full bg-white shadow-lg rounded-lg p-4 ring-1 ring-black ring-opacity-5 text-left flex items-start gap-3`}>
+          <div className={`${t.visible ? 'animate-enter' : 'animate-leave'} max-w-md w-full bg-white shadow-lg rounded-lg p-4 ring-1 ring-black ring-opacity-5 text-left flex items-start gap-3 border-l-4 border-google-blue`}>
              <div className="flex-shrink-0 pt-1">
                 <FontAwesomeIcon icon={faBell} className="text-google-blue text-xl" />
              </div>
              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">Enable Notifications?</p>
-                <p className="mt-1 text-sm text-gray-500">Get real-time updates on your orders and project requests.</p>
+                <p className="text-sm font-bold text-gray-900">Enable Updates?</p>
+                <p className="mt-1 text-xs text-gray-500">Get instant updates on your order status.</p>
                 <div className="mt-3 flex gap-2">
                   <button
                     onClick={() => {
                         toast.dismiss(t.id);
-                        requestForToken().then(token => {
-                            if (token) {
-                                api.post('/api/notifications/subscribe', { token }).catch(err => console.warn("Silent sub fail", err));
-                                // ✅ LOGIC: Toast removed as per request. Only backend subscription happens.
-                            }
-                        });
+                        requestForToken();
                     }}
-                    className="inline-flex justify-center rounded-md border border-transparent bg-google-blue px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-blue-700 transition-colors"
+                    className="inline-flex justify-center rounded-md border border-transparent bg-google-blue px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 transition-colors"
                   >
                     Allow
                   </button>
                   <button
                     onClick={() => toast.dismiss(t.id)}
-                    className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition-colors"
+                    className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition-colors"
                   >
                     Later
                   </button>
@@ -234,7 +225,6 @@ function App() {
         ), 
         { duration: Infinity, position: 'top-center' } 
       );
-      
       return () => toast.dismiss(toastId);
     }
   }, [user]);

@@ -1,27 +1,22 @@
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faExclamationCircle, faSpinner } from '@fortawesome/free-solid-svg-icons';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import api from '../../../services';
-import { SkeletonPulse } from '../../../components';
 
 export const StatsView = ({ approveOrderMutation, rejectOrderMutation, approveProjectPayment, rejectProjectPayment, actionLoading }) => {
     
-    const { data: stats, isLoading } = useQuery({
-        queryKey: ['adminStats'],
-        queryFn: async () => (await api.get('/api/admin/stats')).data,
-    });
+    // Retrieve data from cache (populated by parent polling)
+    const queryClient = useQueryClient();
+    const stats = queryClient.getQueryData(['adminStats']);
 
-    if (isLoading) {
+    if (!stats) {
         return (
             <div className="grid grid-cols-4 gap-4 animate-pulse">
                 {[1,2,3,4].map(i => <div key={i} className="h-32 bg-gray-200 rounded-lg"></div>)}
             </div>
         );
     }
-
-    if (!stats) return null;
 
     return (
         <div className="space-y-8 animate-fadeIn">

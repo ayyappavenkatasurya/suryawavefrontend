@@ -9,19 +9,12 @@ import { ExpirationPlugin } from 'workbox-expiration';
 import { initializeApp } from 'firebase/app';
 import { getMessaging } from 'firebase/messaging/sw';
 
-// --- Workbox Lifecycle ---
 self.skipWaiting();
 clientsClaim();
 
-// Precache assets
 precacheAndRoute(self.__WB_MANIFEST);
-
-// Clean up old caches
 cleanupOutdatedCaches();
 
-// --- Runtime Caching Rules ---
-
-// ✅ FIX: Added StaleWhileRevalidate strategy for images for fast loading and offline support
 registerRoute(
   ({ request }) => request.destination === 'image',
   new StaleWhileRevalidate({
@@ -29,37 +22,24 @@ registerRoute(
     plugins: [
       new CacheableResponsePlugin({ statuses: [0, 200] }),
       new ExpirationPlugin({
-        maxEntries: 60, // Store up to 60 images
-        maxAgeSeconds: 30 * 24 * 60 * 60, // 30 Days
+        maxEntries: 60,
+        maxAgeSeconds: 30 * 24 * 60 * 60,
       }),
     ],
   })
 );
 
-// Cache Google Fonts
 registerRoute(
-  ({ url }) => url.origin === 'https://fonts.googleapis.com',
+  ({ url }) => url.origin === 'https://fonts.googleapis.com' || url.origin === 'https://fonts.gstatic.com',
   new CacheFirst({
-    cacheName: 'google-fonts-stylesheets',
+    cacheName: 'google-fonts',
     plugins: [
       new CacheableResponsePlugin({ statuses: [0, 200] }),
-      new ExpirationPlugin({ maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 }),
+      new ExpirationPlugin({ maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 }),
     ],
   })
 );
 
-registerRoute(
-  ({ url }) => url.origin === 'https://fonts.gstatic.com',
-  new CacheFirst({
-    cacheName: 'google-fonts-webfonts',
-    plugins: [
-      new CacheableResponsePlugin({ statuses: [0, 200] }),
-      new ExpirationPlugin({ maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 }),
-    ],
-  })
-);
-
-// Cache API calls
 registerRoute(
   ({ url }) => url.pathname.startsWith('/api/'),
   new NetworkFirst({
@@ -71,8 +51,6 @@ registerRoute(
     networkTimeoutSeconds: 10,
   })
 );
-
-// --- Firebase Push Notifications ---
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -87,34 +65,27 @@ const firebaseConfig = {
 try {
   initializeApp(firebaseConfig);
   getMessaging();
-  console.log('[SW] Firebase initialized successfully');
+  console.log('[SW] Firebase initialized');
 } catch (err) {
-  console.error('[SW] Firebase initialization failed:', err);
+  console.error('[SW] Firebase init failed:', err);
 }
 
-// Background Push Handler
 self.addEventListener('push', (event) => {
   if (!event.data) return;
 
   const payload = event.data.json();
-  console.log('[SW] Push Received:', payload);
-
   const { title, body, icon, image, url } = payload.data || {};
 
-  // Prevent generic updates or empty notifications
   if (!title || body === 'This site has been updated in the background.') return;
 
   const notificationOptions = {
     body: body,
     icon: icon || '/logo.png',
-    badge: '/logo.png', // Small icon for Android status bar
-    image: image || undefined, // Hero image for rich notifications
+    badge: '/logo.png',
+    image: image || undefined,
     vibrate: [100, 50, 100],
-    data: {
-      url: url || '/'
-    },
-    // Actions can be added here if sent from backend
-    requireInteraction: true // Keeps notification visible until user interacts
+    data: { url: url || '/' },
+    requireInteraction: true
   };
 
   event.waitUntil(
@@ -122,41 +93,23 @@ self.addEventListener('push', (event) => {
   );
 });
 
-// Notification Click Handler
 self.addEventListener('notificationclick', (event) => {
-  console.log('[SW] Notification Clicked');
-  
   event.notification.close();
   const urlToOpen = event.notification.data?.url || '/';
 
-  // This ensures we focus an existing tab if open, otherwise open a new one
   const promiseChain = clients.matchAll({
     type: 'window',
     includeUncontrolled: true
   }).then((windowClients) => {
-    // Attempt to find a tab matching the URL
-    let matchingClient = null;
-
+    // Check if there is already a window/tab open with the target URL
     for (let i = 0; i < windowClients.length; i++) {
       const client = windowClients[i];
-      // Check if the client url contains the path we want to open
-      // This is a loose check to handle query params/hashes better
       if (client.url === urlToOpen || (new URL(client.url).pathname === new URL(urlToOpen, self.location.origin).pathname)) {
-        matchingClient = client;
-        break;
+        return client.focus();
       }
     }
-
-    if (matchingClient) {
-      return matchingClient.focus().then(client => {
-        // Optional: Navigate the client to the specific URL if it wasn't exact match
-        if (client && client.navigate) {
-            return client.navigate(urlToOpen); 
-        }
-      });
-    } else {
-      return clients.openWindow(urlToOpen);
-    }
+    // If not, open a new window
+    return clients.openWindow(urlToOpen);
   });
 
   event.waitUntil(promiseChain);

@@ -11,7 +11,7 @@ import { requestForToken } from '../firebase.jsx';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
-    faHistory, faSpinner, faFolderOpen, faShareNodes, faBell, faSignOutAlt, faUserShield, faTrashAlt, faExclamationTriangle
+    faHistory, faSpinner, faFolderOpen, faShareNodes, faBell, faSignOutAlt, faUserShield, faTrashAlt, faExclamationTriangle, faSync
 } from '@fortawesome/free-solid-svg-icons';
 import { faWhatsapp, faGoogle } from '@fortawesome/free-brands-svg-icons';
 import { LazyImage } from '../components/LazyImage';
@@ -31,9 +31,6 @@ const NotificationSettings = () => {
         }
         setLoading(false);
     };
-
-    // ✅ LOGIC: "Disable" feature removed completely.
-    // If granted, just show status. If default/denied, show Enable button.
 
     return (
         <div className="bg-white p-4 rounded-lg shadow-sm border text-left">
@@ -86,7 +83,6 @@ export const ProfilePage = () => {
         navigate('/login');
     };
 
-    // ✅ GOOGLE PLAY REQUIREMENT: Account Deletion Logic
     const handleDeleteAccount = async () => {
         if (!window.confirm("Are you sure? This will PERMANENTLY delete your account and all associated data. This action cannot be undone.")) {
             return;
@@ -96,7 +92,7 @@ export const ProfilePage = () => {
         try {
             await api.delete('/api/auth/delete');
             toast.success("Account deleted successfully.");
-            logout(); // Clear local state
+            logout(); 
             navigate('/');
         } catch (error) {
             toast.error("Failed to delete account. Please try again or contact support.");
@@ -144,7 +140,6 @@ export const ProfilePage = () => {
                         Logout
                     </button>
 
-                    {/* ✅ GOOGLE PLAY REQUIREMENT: Delete Account Button */}
                     <div className="pt-4 border-t">
                         <button
                             onClick={handleDeleteAccount}
@@ -385,26 +380,29 @@ export const UserDashboardPage = () => {
     const { user, loading: userLoading } = useAuth();
     const { pathname } = useLocation();
     
-    // Parallel fetching with React Query
-    const { data: orders = [], isLoading: ordersLoading } = useQuery({
+    // ✅ REAL-TIME UPDATES: refetchInterval: 4000 (4 seconds)
+    const { data: orders = [], isLoading: ordersLoading, isFetching: isOrdersFetching } = useQuery({
         queryKey: ['myOrders'],
         queryFn: async () => {
             const { data } = await api.get('/api/orders/myorders');
             return data;
         },
-        enabled: !!user // Only run if user is logged in
+        enabled: !!user,
+        refetchInterval: 4000, 
     });
 
-    const { data: projectRequests = [], isLoading: requestsLoading } = useQuery({
+    const { data: projectRequests = [], isLoading: requestsLoading, isFetching: isRequestsFetching } = useQuery({
         queryKey: ['myProjectRequests'],
         queryFn: async () => {
             const { data } = await api.get('/api/project-requests/my-requests');
             return data;
         },
-        enabled: !!user
+        enabled: !!user,
+        refetchInterval: 4000, 
     });
 
     const dataLoading = ordersLoading || requestsLoading;
+    const isLiveUpdating = isOrdersFetching || isRequestsFetching;
     
     const [isContentModalOpen, setContentModalOpen] = useState(false);
     const [selectedService, setSelectedService] = useState(null);
@@ -443,7 +441,14 @@ export const UserDashboardPage = () => {
       <>
         <SEO title="Dashboard" description="Manage your account, services, and projects." keywords="dashboard, account, my services, my projects" path={pathname}/>
         <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8 text-left">
-          <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-3xl font-bold">Dashboard</h1>
+            {isLiveUpdating && (
+                 <div className="flex items-center gap-2 text-xs text-google-blue font-medium bg-blue-50 px-2 py-1 rounded-full animate-pulse">
+                     <FontAwesomeIcon icon={faSync} spin /> Live Updates
+                 </div>
+            )}
+          </div>
 
           {/* MY SERVICES & PROJECTS SECTION */}
           <div className="mb-12">
