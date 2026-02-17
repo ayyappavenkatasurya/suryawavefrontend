@@ -3,13 +3,14 @@ import { useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faSearch, faTimes, faFilter, faLayerGroup, faRocket, faTag, faGift } from '@fortawesome/free-solid-svg-icons';
 import Fuse from 'fuse.js';
 import api from '../../services';
 import { SEO, ServiceCard, ServiceCardSkeleton, PeopleAlsoAsk } from '../../components';
 
 export const ServicesPage = () => {
     const [searchQuery, setSearchQuery] = useState("");
+    const [activeFilter, setActiveFilter] = useState("all"); // 'all', 'free', 'standard', 'custom'
     const { pathname } = useLocation();
   
     const { data: services = [], isLoading: servicesLoading } = useQuery({
@@ -30,27 +31,31 @@ export const ServicesPage = () => {
         staleTime: 1000 * 60 * 30,
     });
 
-    const fuse = useMemo(() => {
-        return new Fuse(services, {
-            keys: ['title', 'description', 'category'],
-            threshold: 0.4, 
-        });
-    }, [services]);
-
-    const filteredServices = useMemo(() => {
+    // Memoize the filtered and searched results
+    const processedServices = useMemo(() => {
         let result = services;
 
-        // Filter by Search Query only
+        // 1. Apply Category/Type Filter
+        if (activeFilter !== 'all') {
+            result = result.filter(service => {
+                if (activeFilter === 'free') return service.currentPrice === 0;
+                if (activeFilter === 'standard') return service.serviceType === 'standard';
+                if (activeFilter === 'custom') return service.serviceType === 'custom';
+                return true;
+            });
+        }
+
+        // 2. Apply Search Query (if exists)
         if (searchQuery.trim()) {
-            const fuseResult = new Fuse(result, {
-                keys: ['title', 'description', 'category'],
-                threshold: 0.4, 
-            }).search(searchQuery);
-            result = fuseResult.map(res => res.item);
+            const fuse = new Fuse(result, {
+                keys: ['title', 'description', 'category', 'tags'], // Added tags if available
+                threshold: 0.4,
+            });
+            result = fuse.search(searchQuery).map(res => res.item);
         }
 
         return result;
-    }, [services, searchQuery]);
+    }, [services, searchQuery, activeFilter]);
   
     const itemListSchema = {
         '@context': 'https://schema.org',
@@ -82,6 +87,14 @@ export const ServicesPage = () => {
             }
         }))
     };
+
+    // Filter Button Configuration
+    const filters = [
+        { id: 'all', label: 'All', icon: faLayerGroup },
+        { id: 'free', label: 'Free', icon: faGift },
+        { id: 'standard', label: 'Standard', icon: faTag },
+        { id: 'custom', label: 'Advanced', icon: faRocket },
+    ];
   
     return (
         <>
@@ -96,21 +109,25 @@ export const ServicesPage = () => {
             </SEO>
             
             <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8 min-h-screen">
-                <h1 className="text-3xl font-bold text-center mb-2 text-gray-900">Explore Services</h1>
+                <div className="text-center mb-8">
+                    <h1 className="text-3xl font-bold text-gray-900 mb-2">Explore Services</h1>
+                </div>
                 
-                {/* Search Bar (Centered, Clean) */}
-                <div className="max-w-xl mx-auto mb-10 relative z-20">
-                    <div className="relative shadow-sm rounded-full">
+                {/* Search & Filter Container */}
+                <div className="max-w-2xl mx-auto mb-10 space-y-6">
+                    
+                    {/* Search Bar */}
+                    <div className="relative shadow-sm rounded-full bg-white z-20 group hover:shadow-md transition-shadow">
                         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                            <FontAwesomeIcon icon={faSearch} className="text-gray-400 text-lg" />
+                            <FontAwesomeIcon icon={faSearch} className="text-gray-400 text-lg group-focus-within:text-google-blue transition-colors" />
                         </div>
 
                         <input 
                             type="text" 
-                            placeholder="Search for services..." 
+                            placeholder="Search for services, projects, or notes..." 
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="block w-full pl-12 pr-12 py-3.5 border border-gray-300 rounded-full leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-google-blue focus:border-google-blue focus:placeholder-gray-400 sm:text-sm transition-all"
+                            className="block w-full pl-12 pr-12 py-3.5 border border-gray-300 rounded-full leading-5 bg-transparent placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-google-blue focus:border-google-blue focus:placeholder-gray-400 sm:text-sm transition-all"
                         />
 
                         {searchQuery && (
@@ -123,6 +140,26 @@ export const ServicesPage = () => {
                             </button>
                         )}
                     </div>
+
+                    {/* Filter Pills */}
+                    <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
+                        {filters.map((filter) => (
+                            <button
+                                key={filter.id}
+                                onClick={() => setActiveFilter(filter.id)}
+                                className={`
+                                    flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 transform active:scale-95 border
+                                    ${activeFilter === filter.id 
+                                        ? 'bg-gray-900 text-white border-gray-900 shadow-md' 
+                                        : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+                                    }
+                                `}
+                            >
+                                <FontAwesomeIcon icon={filter.icon} className={activeFilter === filter.id ? 'text-white' : 'text-gray-400'} />
+                                {filter.label}
+                            </button>
+                        ))}
+                    </div>
                 </div>
 
                 {/* Services Grid */}
@@ -131,9 +168,9 @@ export const ServicesPage = () => {
                         Array.from({ length: 6 }).map((_, i) => (
                             <ServiceCardSkeleton key={i} />
                         ))
-                    ) : filteredServices.length > 0 ? (
+                    ) : processedServices.length > 0 ? (
                         <AnimatePresence mode='popLayout'>
-                            {filteredServices.map((service) => (
+                            {processedServices.map((service) => (
                                 <motion.div
                                     key={service._id}
                                     layout
@@ -147,25 +184,40 @@ export const ServicesPage = () => {
                             ))}
                         </AnimatePresence>
                     ) : (
-                        <div className="col-span-full text-center py-20 bg-white rounded-xl border border-dashed border-gray-200">
+                        <div className="col-span-full text-center py-20 bg-white rounded-xl border border-dashed border-gray-200 mx-4">
                             <div className="text-gray-300 text-6xl mb-4">
-                                <FontAwesomeIcon icon={faSearch} />
+                                <FontAwesomeIcon icon={activeFilter !== 'all' ? faFilter : faSearch} />
                             </div>
                             <h3 className="text-xl font-bold text-gray-800">No services found</h3>
                             <p className="text-gray-500 mt-2">
-                                We couldn't find any services matching "<strong>{searchQuery}</strong>".
+                                {searchQuery 
+                                    ? <span>No matches for "<strong>{searchQuery}</strong>" in {activeFilter === 'all' ? 'all services' : `${activeFilter} category`}.</span>
+                                    : <span>No services available in the <strong>{filters.find(f => f.id === activeFilter)?.label}</strong> category yet.</span>
+                                }
                             </p>
-                            <button 
-                                onClick={() => setSearchQuery('')}
-                                className="mt-6 px-6 py-2 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition-colors"
-                            >
-                                Clear Search
-                            </button>
+                            <div className="mt-6 flex gap-3 justify-center">
+                                {searchQuery && (
+                                    <button 
+                                        onClick={() => setSearchQuery('')}
+                                        className="px-5 py-2 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition-colors"
+                                    >
+                                        Clear Search
+                                    </button>
+                                )}
+                                {activeFilter !== 'all' && (
+                                    <button 
+                                        onClick={() => setActiveFilter('all')}
+                                        className="px-5 py-2 bg-google-blue text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+                                    >
+                                        View All
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     )}
                 </div>
                 
-                {!servicesLoading && filteredServices.length > 0 && <PeopleAlsoAsk faqs={faqs} />}
+                {!servicesLoading && processedServices.length > 0 && <PeopleAlsoAsk faqs={faqs} />}
             </div>
         </>
     );
