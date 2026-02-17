@@ -4,8 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
-  faClock, faQuestionCircle, faChevronDown, faShareNodes, faSpinner, faTag, faTools, 
-  faCalendarAlt, faFolderOpen, faExternalLinkAlt, faTimes, faFire, faRocket
+  faClock, faQuestionCircle, faChevronDown, faShareNodes, faSpinner, faTag, 
+  faCalendarAlt, faFolderOpen, faExternalLinkAlt, faTimes, faFire, faRocket, faGift
 } from '@fortawesome/free-solid-svg-icons';
 import toast from 'react-hot-toast';
 import QRCode from "react-qr-code";
@@ -112,7 +112,6 @@ export const ServiceCard = React.memo(({ service }) => {
     const shareData = {
         title: service.title,
         text: service.description,
-        // ✅ CRITICAL FIX: Ensure precise URL for backend meta injection
         url: `${window.location.origin}/services/${service.slug}`,
     };
 
@@ -151,7 +150,7 @@ export const ServiceCard = React.memo(({ service }) => {
             )}
             {isFree && (
                 <div className="bg-purple-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm flex items-center gap-1 uppercase tracking-wide">
-                <FontAwesomeIcon icon={faTag} /><span>FREE</span>
+                <FontAwesomeIcon icon={faGift} /><span>FREE</span>
                 </div>
             )}
           </div>
@@ -199,8 +198,9 @@ export const ServiceCard = React.memo(({ service }) => {
               )}
             </div>
           ) : (
-            // ✅ CHANGED: "Custom" -> "Advanced" with appropriate icon
-            <span className="text-sm font-bold text-gray-700 flex items-center gap-1"><FontAwesomeIcon icon={faRocket} className="text-google-blue" /> Advanced</span>
+            <span className="text-sm font-bold text-gray-700 flex items-center gap-1">
+                <FontAwesomeIcon icon={faRocket} className="text-google-blue" /> Advanced
+            </span>
           )}
           
           <NavLink to={`/services/${service.slug}`} className="px-4 py-1.5 bg-blue-50 text-google-blue border border-blue-100 rounded-lg hover:bg-google-blue hover:text-white transition-all text-sm font-semibold shadow-sm hover:shadow">
