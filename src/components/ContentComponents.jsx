@@ -100,10 +100,6 @@ PeopleAlsoAsk.displayName = 'PeopleAlsoAsk';
 export const ServiceCard = React.memo(({ service }) => {
   const hasOffer = service.price !== service.currentPrice;
   const isFree = service.currentPrice === 0;
-  // Determine display logic: Custom services often have variable pricing logic or fixed large amounts
-  // If it's custom, we show "Advanced" badge unless it has a specific fixed price set for direct purchase.
-  const isStandard = service.serviceType === 'standard';
-  
   const [isSharing, setIsSharing] = useState(false);
 
   const orderBadgeText = service.orderCount ? `${service.orderCount}+ ordered` : null;
@@ -116,6 +112,7 @@ export const ServiceCard = React.memo(({ service }) => {
     const shareData = {
         title: service.title,
         text: service.description,
+        // ✅ CRITICAL FIX: Ensure precise URL for backend meta injection
         url: `${window.location.origin}/services/${service.slug}`,
     };
 
@@ -157,11 +154,6 @@ export const ServiceCard = React.memo(({ service }) => {
                 <FontAwesomeIcon icon={faTag} /><span>FREE</span>
                 </div>
             )}
-            {!isStandard && (
-                <div className="bg-gray-800 text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm flex items-center gap-1 uppercase tracking-wide">
-                    <FontAwesomeIcon icon={faRocket} /><span>ADVANCED</span>
-                </div>
-            )}
           </div>
           
           {orderBadgeText && (
@@ -192,7 +184,7 @@ export const ServiceCard = React.memo(({ service }) => {
         )}
 
         <div className="flex justify-between items-end">
-          {(service.price > 0 && isStandard) ? (
+          {(service.price > 0 || service.serviceType === 'standard') ? (
             <div className="flex flex-col">
               {isFree ? (
                   <span className="text-xl font-bold text-purple-600">Free</span>
@@ -207,22 +199,8 @@ export const ServiceCard = React.memo(({ service }) => {
               )}
             </div>
           ) : (
-             // For Custom services or non-priced items
-             <div className="flex flex-col">
-                 <span className="text-sm font-bold text-gray-700 flex items-center gap-1">
-                     {service.price > 0 ? (
-                        <>
-                             <span className="text-xl font-bold text-gray-900">₹{service.currentPrice}</span>
-                             <span className="text-[10px] text-gray-500 font-normal ml-1">(Fixed)</span>
-                        </>
-                     ) : (
-                        <>
-                            <FontAwesomeIcon icon={faRocket} className="text-google-blue" /> 
-                            <span>Project</span>
-                        </>
-                     )}
-                 </span>
-             </div>
+            // ✅ CHANGED: "Custom" -> "Advanced" with appropriate icon
+            <span className="text-sm font-bold text-gray-700 flex items-center gap-1"><FontAwesomeIcon icon={faRocket} className="text-google-blue" /> Advanced</span>
           )}
           
           <NavLink to={`/services/${service.slug}`} className="px-4 py-1.5 bg-blue-50 text-google-blue border border-blue-100 rounded-lg hover:bg-google-blue hover:text-white transition-all text-sm font-semibold shadow-sm hover:shadow">
