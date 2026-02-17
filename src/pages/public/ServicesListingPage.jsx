@@ -1,5 +1,3 @@
-// frontend/src/pages/public/ServicesListingPage.jsx
-
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -236,56 +234,72 @@ export const ServicesPage = () => {
                 </div>
 
                 {/* Services Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {servicesLoading ? (
-                        Array.from({ length: 6 }).map((_, i) => (
-                            <ServiceCardSkeleton key={i} />
-                        ))
-                    ) : filteredServices.length > 0 ? (
-                        <AnimatePresence mode='popLayout'>
-                            {filteredServices.map((service) => (
+                <motion.div 
+                    layout
+                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+                >
+                    <AnimatePresence mode='popLayout'>
+                        {servicesLoading ? (
+                            Array.from({ length: 6 }).map((_, i) => (
+                                <div key={`skeleton-${i}`} className="w-full">
+                                    <ServiceCardSkeleton />
+                                </div>
+                            ))
+                        ) : filteredServices.length > 0 ? (
+                            filteredServices.map((service) => (
                                 <motion.div
-                                    key={service._id}
                                     layout
-                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    key={service._id}
+                                    initial={{ opacity: 0, scale: 0.9 }}
                                     animate={{ opacity: 1, scale: 1 }}
-                                    exit={{ opacity: 0, scale: 0.95 }}
-                                    transition={{ duration: 0.2 }}
+                                    exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+                                    transition={{ 
+                                        type: "spring", 
+                                        stiffness: 300, 
+                                        damping: 25,
+                                        mass: 1 
+                                    }}
+                                    className="h-full"
                                 >
                                     <ServiceCard service={service} />
                                 </motion.div>
-                            ))}
-                        </AnimatePresence>
-                    ) : (
-                        <div className="col-span-full text-center py-20 bg-white rounded-xl border border-dashed border-gray-200">
-                            <div className="text-gray-300 text-6xl mb-4">
-                                <FontAwesomeIcon icon={faSearch} />
-                            </div>
-                            <h3 className="text-xl font-bold text-gray-800">No services found</h3>
-                            <p className="text-gray-500 mt-2">
-                                We couldn't find any services matching your criteria.
-                            </p>
-                            <div className="mt-6 flex justify-center gap-3">
-                                {searchQuery && (
-                                    <button 
-                                        onClick={() => setSearchQuery('')}
-                                        className="px-5 py-2 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition-colors"
-                                    >
-                                        Clear Search Text
-                                    </button>
-                                )}
-                                {activeFilter !== 'all' && (
-                                    <button 
-                                        onClick={() => setActiveFilter('all')}
-                                        className="px-5 py-2 bg-blue-50 text-google-blue font-semibold rounded-lg hover:bg-blue-100 transition-colors"
-                                    >
-                                        Reset Filters
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    )}
-                </div>
+                            ))
+                        ) : (
+                            <motion.div 
+                                layout
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className="col-span-full text-center py-20 bg-white rounded-xl border border-dashed border-gray-200"
+                            >
+                                <div className="text-gray-300 text-6xl mb-4">
+                                    <FontAwesomeIcon icon={faSearch} />
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-800">No services found</h3>
+                                <p className="text-gray-500 mt-2">
+                                    We couldn't find any services matching your criteria.
+                                </p>
+                                <div className="mt-6 flex justify-center gap-3">
+                                    {searchQuery && (
+                                        <button 
+                                            onClick={() => setSearchQuery('')}
+                                            className="px-5 py-2 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition-colors"
+                                        >
+                                            Clear Search Text
+                                        </button>
+                                    )}
+                                    {activeFilter !== 'all' && (
+                                        <button 
+                                            onClick={() => setActiveFilter('all')}
+                                            className="px-5 py-2 bg-blue-50 text-google-blue font-semibold rounded-lg hover:bg-blue-100 transition-colors"
+                                        >
+                                            Reset Filters
+                                        </button>
+                                    )}
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </motion.div>
                 
                 {!servicesLoading && filteredServices.length > 0 && <PeopleAlsoAsk faqs={faqs} />}
             </div>
