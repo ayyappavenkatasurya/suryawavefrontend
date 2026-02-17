@@ -135,21 +135,6 @@ export const CustomProjectForm = ({ service, onSubmit }) => {
               </div>
             )}
 
-            {service.price > 0 && (
-                <div className="mb-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <h3 className="font-bold text-lg text-gray-800 mb-2">Project Pricing</h3>
-                    {hasOffer && service.offer.name && (
-                         <p className="text-sm font-semibold text-green-700 bg-green-100 inline-block px-2 py-0.5 rounded-md mb-2">{service.offer.name} Active!</p>
-                    )}
-                    <p className="text-gray-700">
-                        The total fixed price for this project is{' '}
-                        {hasOffer && <span className="line-through text-gray-500">₹{service.price}</span>}{' '}
-                        <span className="font-semibold text-xl text-gray-900">₹{service.currentPrice}</span>.
-                    </p>
-                    {service.advanceAmount > 0 && <p className="text-gray-700 mt-1">An advance payment of <span className="font-semibold">₹{service.advanceAmount}</span> will be required to start.</p>}
-                </div>
-            )}
-
             <form onSubmit={handleSubmit} className="space-y-2">
                 {service.srsForm.map((block, index) => renderBlock(block, index))}
                 
