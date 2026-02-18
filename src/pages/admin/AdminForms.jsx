@@ -4,18 +4,23 @@ import React, { useState, useEffect, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import toast from 'react-hot-toast';
+import { Reorder, useDragControls } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
     faEdit, faPlus, faSpinner, faHeading, faParagraph, 
-    faImage, faFileAlt, faWallet, faKeyboard, faFileLines 
+    faImage, faFileAlt, faWallet, faKeyboard, faFileLines,
+    faGripVertical, faTrash
 } from '@fortawesome/free-solid-svg-icons';
 import api from '../../services';
+
+// Helper to generate unique IDs for drag-and-drop keys
+const generateId = () => `id-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
 // ========== Article Preview Component ==========
 export const ArticlePreview = ({ article }) => {
     if (!article || !article.title) {
         return (
-            <div className="border-4 border-dashed border-gray-200 rounded-xl p-6 text-center text-gray-500 h-full flex flex-col items-center justify-center">
+            <div className="border-4 border-dashed border-gray-200 rounded-xl p-6 text-center text-gray-500 h-full flex flex-col items-center justify-center min-h-[200px]">
                 <p className="font-medium">Article preview</p>
                 <p className="text-sm">Start typing in the form to see live updates.</p>
             </div>
@@ -82,22 +87,24 @@ export const AddArticleForm = ({ articleToEdit, onArticleAdded, onArticleUpdated
     };
 
     return (
-      <div className="bg-white p-6 rounded-lg shadow-md border text-left">
+      <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border text-left">
         <h3 className="text-lg font-semibold mb-4">{articleToEdit ? 'Edit Article' : 'Add a New Article'}</h3>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <input type="text" placeholder="Article Title" value={title} onChange={e => setTitle(e.target.value)} required className="w-full p-2 border rounded focus:ring-2 focus:ring-google-blue focus:outline-none"/>
-          <input type="text" placeholder="Featured Image URL" value={featuredImage} onChange={e => setFeaturedImage(e.target.value)} required className="w-full p-2 border rounded focus:ring-2 focus:ring-google-blue focus:outline-none"/>
-          <textarea placeholder="Excerpt (Short summary)" value={excerpt} onChange={e => setExcerpt(e.target.value)} required className="w-full p-2 border rounded h-24 focus:ring-2 focus:ring-google-blue focus:outline-none"/>
-          <textarea placeholder="Full Content (Markdown supported)" value={content} onChange={e => setContent(e.target.value)} required className="w-full p-2 border rounded h-48 focus:ring-2 focus:ring-google-blue focus:outline-none"/>
-          <input type="text" placeholder="Tags (comma-separated)" value={tags} onChange={e => setTags(e.target.value)} className="w-full p-2 border rounded focus:ring-2 focus:ring-google-blue focus:outline-none"/>
+          <div className="grid grid-cols-1 gap-4">
+            <input type="text" placeholder="Article Title" value={title} onChange={e => setTitle(e.target.value)} required className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-google-blue focus:outline-none transition-shadow"/>
+            <input type="text" placeholder="Featured Image URL" value={featuredImage} onChange={e => setFeaturedImage(e.target.value)} required className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-google-blue focus:outline-none transition-shadow"/>
+          </div>
+          <textarea placeholder="Excerpt (Short summary)" value={excerpt} onChange={e => setExcerpt(e.target.value)} required className="w-full p-2.5 border rounded-lg h-24 focus:ring-2 focus:ring-google-blue focus:outline-none transition-shadow"/>
+          <textarea placeholder="Full Content (Markdown supported)" value={content} onChange={e => setContent(e.target.value)} required className="w-full p-2.5 border rounded-lg h-48 focus:ring-2 focus:ring-google-blue focus:outline-none transition-shadow font-mono text-sm"/>
+          <input type="text" placeholder="Tags (comma-separated)" value={tags} onChange={e => setTags(e.target.value)} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-google-blue focus:outline-none transition-shadow"/>
           
-          <div className="flex items-center gap-2 pt-4">
-            <button type="submit" disabled={loading} className="w-full py-2 bg-google-blue text-white rounded font-semibold flex items-center justify-center gap-2 disabled:bg-blue-400 hover:bg-blue-700 transition-colors">
+          <div className="flex flex-col sm:flex-row items-center gap-3 pt-4">
+            <button type="submit" disabled={loading} className="w-full py-2.5 bg-google-blue text-white rounded-lg font-semibold flex items-center justify-center gap-2 disabled:bg-blue-400 hover:bg-blue-700 transition-colors shadow-sm">
                 {loading ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={articleToEdit ? faEdit : faPlus} />}
                 {loading ? 'Saving...' : (articleToEdit ? 'Update Article' : 'Add Article')}
             </button>
             {articleToEdit && (
-              <button type="button" onClick={onCancelEdit} className="w-full py-2 bg-gray-200 rounded font-semibold hover:bg-gray-300 transition-colors">Cancel</button>
+              <button type="button" onClick={onCancelEdit} className="w-full sm:w-auto px-6 py-2.5 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition-colors">Cancel</button>
             )}
           </div>
         </form>
@@ -105,7 +112,7 @@ export const AddArticleForm = ({ articleToEdit, onArticleAdded, onArticleUpdated
     );
 };
 
-// ========== Add/Edit Service Form Component ==========
+// ========== Add/Edit Service Form Component (Responsive & Drag-n-Drop) ==========
 export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated, onCancelEdit, onFormChange }) => {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
@@ -113,18 +120,19 @@ export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated
     const [advanceAmount, setAdvanceAmount] = useState('');
     const [imageUrl, setImageUrl] = useState('');
     const [contentUrls, setContentUrls] = useState([{ name: '', url: '' }]);
-    const [pageContent, setPageContent] = useState([]);
     const [serviceType, setServiceType] = useState('standard');
     
-    // ✅ NEW SRS FORM STRUCTURE (Mix of Inputs and Content)
-    const [srsForm, setSrsForm] = useState([{ blockType: 'input', label: 'Describe your requirements', inputType: 'textarea', required: true }]);
+    // Lists with internal IDs for Drag and Drop
+    const [pageContent, setPageContent] = useState([]);
+    const [srsForm, setSrsForm] = useState([{ uuid: generateId(), blockType: 'input', label: 'Describe your requirements', inputType: 'textarea', required: true }]);
+    
     const [loading, setLoading] = useState(false);
   
     const resetForm = useCallback(() => { 
         setTitle(''); setDescription(''); setPrice(''); setAdvanceAmount(''); 
         setImageUrl(''); setContentUrls([{ name: '', url: '' }]); 
         setPageContent([]); setServiceType('standard'); 
-        setSrsForm([{ blockType: 'input', label: 'Describe your requirements', inputType: 'textarea', required: true }]); 
+        setSrsForm([{ uuid: generateId(), blockType: 'input', label: 'Describe your requirements', inputType: 'textarea', required: true }]); 
     }, []);
     
     useEffect(() => { 
@@ -147,17 +155,21 @@ export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated
             setAdvanceAmount(serviceToEdit.advanceAmount ? serviceToEdit.advanceAmount.toString() : '');
             setImageUrl(serviceToEdit.imageUrl); 
             setContentUrls(serviceToEdit.contentUrls && serviceToEdit.contentUrls.length > 0 ? serviceToEdit.contentUrls : [{ name: '', url: '' }]); 
-            setPageContent(serviceToEdit.pageContent || []); 
+            
+            // Add UUIDs to existing content for Reorder
+            setPageContent((serviceToEdit.pageContent || []).map(item => ({...item, uuid: item.uuid || generateId()}))); 
+            
             setServiceType(serviceToEdit.serviceType || 'standard');
-            // Support legacy (old schema) and new schema
+            
             if (serviceToEdit.srsForm && serviceToEdit.srsForm.length > 0) {
                 const mappedForm = serviceToEdit.srsForm.map(item => ({
                     ...item,
-                    blockType: item.blockType || 'input'
+                    blockType: item.blockType || 'input',
+                    uuid: item.uuid || generateId()
                 }));
                 setSrsForm(mappedForm);
             } else {
-                setSrsForm([{ blockType: 'input', label: 'Describe your requirements', inputType: 'textarea', required: true }]);
+                setSrsForm([{ uuid: generateId(), blockType: 'input', label: 'Describe your requirements', inputType: 'textarea', required: true }]);
             }
         } else { 
             resetForm(); 
@@ -169,13 +181,25 @@ export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated
     const addPaidContentField = () => { setContentUrls([...contentUrls, { name: '', url: '' }]); };
     const removePaidContentField = index => { setContentUrls(prevUrls => prevUrls.filter((_, i) => i !== index)); };
     
-    const addPageContentBlock = (type) => { const newBlock = { type }; if (type === 'heading' || type === 'subheading' || type === 'paragraph') newBlock.value = ''; if (type === 'image') { newBlock.url = ''; newBlock.alt = ''; } if (type === 'file') { newBlock.url = ''; newBlock.value = ''; newBlock.iconUrl = ''; } setPageContent([...pageContent, newBlock]); };
-    const handlePageContentChange = (index, field, value) => { const newPageContent = [...pageContent]; newPageContent[index][field] = value; setPageContent(newPageContent); };
-    const removePageContentBlock = (index) => { setPageContent(pageContent.filter((_, i) => i !== index)); };
+    const addPageContentBlock = (type) => { 
+        const newBlock = { type, uuid: generateId() }; 
+        if (type === 'heading' || type === 'subheading' || type === 'paragraph') newBlock.value = ''; 
+        if (type === 'image') { newBlock.url = ''; newBlock.alt = ''; } 
+        if (type === 'file') { newBlock.url = ''; newBlock.value = ''; newBlock.iconUrl = ''; } 
+        setPageContent([...pageContent, newBlock]); 
+    };
+
+    const handlePageContentChange = (uuid, field, value) => { 
+        setPageContent(prev => prev.map(item => item.uuid === uuid ? { ...item, [field]: value } : item));
+    };
+
+    const removePageContentBlock = (uuid) => { 
+        setPageContent(prev => prev.filter(item => item.uuid !== uuid)); 
+    };
 
     // --- Advanced Requirement Builder (Hybrid) ---
     const addSrsBlock = (type) => {
-        let newBlock = { blockType: type };
+        let newBlock = { blockType: type, uuid: generateId() };
         if (type === 'input') {
             newBlock.label = ''; newBlock.inputType = 'text'; newBlock.required = false;
         } else if (type === 'heading' || type === 'subheading' || type === 'paragraph') {
@@ -188,14 +212,12 @@ export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated
         setSrsForm([...srsForm, newBlock]);
     };
 
-    const handleSrsFormChange = (index, field, value) => {
-        const newSrsForm = [...srsForm];
-        newSrsForm[index][field] = value;
-        setSrsForm(newSrsForm);
+    const handleSrsFormChange = (uuid, field, value) => {
+        setSrsForm(prev => prev.map(item => item.uuid === uuid ? { ...item, [field]: value } : item));
     };
 
-    const removeSrsBlock = (index) => {
-        setSrsForm(srsForm.filter((_, i) => i !== index));
+    const removeSrsBlock = (uuid) => {
+        setSrsForm(prev => prev.filter(item => item.uuid !== uuid));
     };
 
     const handleSubmit = async (e) => {
@@ -203,10 +225,14 @@ export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated
       setLoading(true);
       const autoCategory = serviceType === 'standard' ? 'Standard' : 'Advanced';
       
+      // Clean UUIDs before sending to backend if necessary (MongoDB usually ignores extra fields unless strict, but clean is better)
+      const cleanPageContent = pageContent.map(({ uuid, ...rest }) => rest);
+      const cleanSrsForm = srsForm.map(({ uuid, ...rest }) => rest);
+
       const serviceData = { 
           title, description, price: Number(price), advanceAmount: Number(advanceAmount), 
-          category: autoCategory, imageUrl, pageContent, contentUrls, serviceType, 
-          srsForm: serviceType === 'custom' ? srsForm : [] 
+          category: autoCategory, imageUrl, pageContent: cleanPageContent, contentUrls, serviceType, 
+          srsForm: serviceType === 'custom' ? cleanSrsForm : [] 
       };
       try {
         if (serviceToEdit) { const { data } = await api.put(`/api/services/${serviceToEdit._id}`, serviceData); toast.success('Service updated!'); onServiceUpdated(data); } 
@@ -215,132 +241,253 @@ export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated
       finally { setLoading(false); }
     };
 
-    return (
-      <div className="bg-white p-6 rounded-lg shadow-md border text-left h-full">
-        <h3 className="text-lg font-semibold mb-4">{serviceToEdit ? 'Edit Service' : 'Add a New Service'}</h3>
-        <form onSubmit={handleSubmit} className="space-y-4 max-h-[80vh] overflow-y-auto pr-2 custom-scrollbar">
-          <h4 className="font-medium border-b pb-2">Card Information</h4>
-          <input type="text" placeholder="Title (for card)" value={title} onChange={e => setTitle(e.target.value)} required className="w-full p-2 border rounded"/>
-          <textarea placeholder="Short Description (for card)" value={description} onChange={e => setDescription(e.target.value)} required className="w-full p-2 border rounded"/>
-          <input type="text" placeholder="Image URL (for card)" value={imageUrl} onChange={e => setImageUrl(e.target.value)} required className="w-full p-2 border rounded"/>
-          
-          <h4 className="font-medium border-b pb-2 pt-4">Service Type & Pricing</h4>
-          <select value={serviceType} onChange={e => setServiceType(e.target.value)} className="w-full p-2 border rounded bg-white">
-            <option value="standard">Standard (Readymade Notes/Files)</option>
-            <option value="custom">Advanced (Project/Service Request)</option>
-          </select>
+    // Drag Controls Helper Component
+    const DragHandle = ({ dragControls }) => (
+        <div onPointerDown={(e) => dragControls.start(e)} className="cursor-grab active:cursor-grabbing p-2 text-gray-400 hover:text-gray-600">
+            <FontAwesomeIcon icon={faGripVertical} />
+        </div>
+    );
 
-          <input type="number" placeholder={serviceType === 'standard' ? 'Price (Enter 0 for Free)' : 'Total Project Price (Optional)'} value={price} onChange={e => setPrice(e.target.value)} className="w-full p-2 border rounded"/>
-
-          {serviceType === 'standard' ? (
-            <>
-              <h4 className="font-medium border-b pb-2 pt-4">Service Page Content Builder</h4>
-              <div className="space-y-3 border p-3 rounded-md min-h-[100px] bg-gray-50 max-h-64 overflow-y-auto custom-scrollbar">
-                  {pageContent.map((block, index) => (
-                    <div key={index} className="p-3 border bg-white rounded relative shadow-sm">
-                        <button type="button" onClick={() => removePageContentBlock(index)} className="absolute top-1 right-2 text-red-500 font-bold hover:text-red-700">&times;</button>
-                        <label className="block text-sm font-semibold capitalize mb-1 text-gray-600">{block.type}</label>
-                        { (block.type === 'heading' || block.type === 'subheading') && <input type="text" value={block.value} onChange={e => handlePageContentChange(index, 'value', e.target.value)} className="w-full p-2 border rounded" placeholder="Heading Text" /> }
-                        { block.type === 'paragraph' && <div><textarea value={block.value} onChange={e => handlePageContentChange(index, 'value', e.target.value)} className="w-full p-2 border rounded h-24" placeholder="Paragraph Content" /><p className="text-xs text-gray-500 mt-1">Use **text** for bold and *text* for italics.</p></div> }
-                        { block.type === 'image' && <div className='space-y-2'><input type="url" placeholder="Image URL" value={block.url} onChange={e => handlePageContentChange(index, 'url', e.target.value)} className="w-full p-2 border rounded" /><input type="text" placeholder="Alt Text" value={block.alt} onChange={e => handlePageContentChange(index, 'alt', e.target.value)} className="w-full p-2 border rounded" /></div> }
-                        { block.type === 'file' && <div className='space-y-2'><input type="url" placeholder="File URL" value={block.url} onChange={e => handlePageContentChange(index, 'url', e.target.value)} className="w-full p-2 border rounded" /><input type="text" placeholder="Display Name" value={block.value} onChange={e => handlePageContentChange(index, 'value', e.target.value)} className="w-full p-2 border rounded" /><input type="url" placeholder="Icon Image URL (Optional)" value={block.iconUrl} onChange={e => handlePageContentChange(index, 'iconUrl', e.target.value)} className="w-full p-2 border rounded" /></div> }
-                        { block.type === 'purchaseButton' && <p className="text-sm text-gray-500 p-2 bg-yellow-100 rounded text-center">Purchase button for ₹{price || '...'} will be placed here.</p> }
+    // Reorder Item Wrapper
+    const SortableItem = ({ item, children, onRemove }) => {
+        const dragControls = useDragControls();
+        return (
+            <Reorder.Item
+                value={item}
+                id={item.uuid}
+                dragListener={false}
+                dragControls={dragControls}
+                className="bg-white border rounded-lg shadow-sm mb-3 overflow-hidden"
+            >
+                <div className="flex items-start">
+                    <div className="bg-gray-50 border-r h-full min-h-[50px] flex items-center justify-center w-10 shrink-0 self-stretch">
+                        <DragHandle dragControls={dragControls} />
                     </div>
-                  ))}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <button type="button" onClick={() => addPageContentBlock('heading')} className="text-xs bg-gray-200 px-3 py-1.5 rounded flex items-center gap-1 hover:bg-gray-300"><FontAwesomeIcon icon={faHeading}/> Heading</button>
-                <button type="button" onClick={() => addPageContentBlock('subheading')} className="text-xs bg-gray-200 px-3 py-1.5 rounded flex items-center gap-1 hover:bg-gray-300"><FontAwesomeIcon icon={faHeading} className="text-xs"/> Subheading</button>
-                <button type="button" onClick={() => addPageContentBlock('paragraph')} className="text-xs bg-gray-200 px-3 py-1.5 rounded flex items-center gap-1 hover:bg-gray-300"><FontAwesomeIcon icon={faParagraph}/> Paragraph</button>
-                <button type="button" onClick={() => addPageContentBlock('image')} className="text-xs bg-gray-200 px-3 py-1.5 rounded flex items-center gap-1 hover:bg-gray-300"><FontAwesomeIcon icon={faImage}/> Image</button>
-                <button type="button" onClick={() => addPageContentBlock('file')} className="text-xs bg-gray-200 px-3 py-1.5 rounded flex items-center gap-1 hover:bg-gray-300"><FontAwesomeIcon icon={faFileAlt}/> File Link</button>
-                <button type="button" onClick={() => addPageContentBlock('purchaseButton')} className="text-xs bg-yellow-200 px-3 py-1.5 rounded font-medium flex items-center gap-1 hover:bg-yellow-300"><FontAwesomeIcon icon={faWallet}/> Purchase</button>
-              </div>
-              <h4 className="font-medium border-b pb-2 pt-4">Paid/Free Content (Downloads)</h4>
-              <div>{contentUrls.map((field, index) => (<div key={index} className="flex items-center space-x-2 mb-2"><input type="text" name="name" placeholder="File Name" value={field.name} onChange={e => handlePaidContentChange(index, e)} className="w-1/3 p-2 border rounded"/><input type="url" name="url" placeholder="URL" value={field.url} onChange={e => handlePaidContentChange(index, e)} className="w-2/3 p-2 border rounded"/>{contentUrls.length > 1 && <button type="button" onClick={() => removePaidContentField(index)} className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600">-</button>}</div>))}<button type="button" onClick={addPaidContentField} className="text-sm text-google-blue hover:underline">+ Add More</button></div>
-            </>
-          ) : (
-             <>
-                <input type="number" placeholder="Advance Amount (Optional)" value={advanceAmount} onChange={e => setAdvanceAmount(e.target.value)} className="w-full p-2 border rounded"/>
-                <h4 className="font-medium border-b pb-2 pt-4">Advanced Project Page Builder</h4>
-                <p className="text-xs text-gray-500 mb-2">Build your requirement form. You can mix Input Fields for the user with Informational Content (Text, Images, Files).</p>
-                
-                <div className="space-y-3 border p-3 rounded-md min-h-[100px] bg-gray-50 max-h-64 overflow-y-auto custom-scrollbar">
-                    {srsForm.map((field, index) => (
-                        <div key={index} className="p-3 border bg-white rounded shadow-sm relative">
-                            <button type="button" onClick={() => removeSrsBlock(index)} className="absolute top-1 right-2 text-red-500 font-bold hover:text-red-700">&times;</button>
-                            <div className="flex items-center gap-2 mb-2">
-                                <span className={`text-xs font-bold uppercase px-2 py-0.5 rounded ${field.blockType === 'input' ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-700'}`}>
-                                    {field.blockType}
-                                </span>
-                            </div>
+                    <div className="p-3 flex-grow relative">
+                         <button type="button" onClick={onRemove} className="absolute top-2 right-2 text-red-400 hover:text-red-600 transition-colors">
+                            <FontAwesomeIcon icon={faTrash} />
+                         </button>
+                        {children}
+                    </div>
+                </div>
+            </Reorder.Item>
+        );
+    };
 
-                            {/* INPUT BLOCK CONFIG */}
-                            {field.blockType === 'input' && (
-                                <div className="space-y-2">
-                                    <input type="text" placeholder="Field Label (e.g. 'Project Title')" value={field.label} onChange={e => handleSrsFormChange(index, 'label', e.target.value)} className="w-full p-2 border rounded" />
-                                    <div className="flex gap-2">
-                                        <select value={field.inputType} onChange={e => handleSrsFormChange(index, 'inputType', e.target.value)} className="w-1/2 p-2 border rounded bg-white">
-                                            <option value="text">Single Line Text</option>
-                                            <option value="textarea">Multi-line Text</option>
-                                            <option value="file">File Link Input (User Upload)</option>
-                                        </select>
-                                        <label className="flex items-center gap-2 text-sm cursor-pointer border p-2 rounded w-1/2 bg-gray-50">
-                                            <input type="checkbox" checked={field.required} onChange={e => handleSrsFormChange(index, 'required', e.target.checked)} /> 
-                                            Required Field
-                                        </label>
-                                    </div>
-                                </div>
-                            )}
+    return (
+      <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border text-left h-full flex flex-col">
+        <h3 className="text-lg font-semibold mb-4 text-gray-800">{serviceToEdit ? 'Edit Service' : 'Add a New Service'}</h3>
+        
+        <form onSubmit={handleSubmit} className="flex flex-col flex-grow overflow-hidden">
+          <div className="flex-grow overflow-y-auto pr-2 custom-scrollbar pb-4 space-y-4">
+            
+            {/* --- General Info --- */}
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                <h4 className="font-bold text-gray-700 text-sm uppercase tracking-wide mb-3">Card Information</h4>
+                <div className="space-y-3">
+                    <input type="text" placeholder="Title (for card)" value={title} onChange={e => setTitle(e.target.value)} required className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-google-blue focus:outline-none"/>
+                    <textarea placeholder="Short Description (for card)" value={description} onChange={e => setDescription(e.target.value)} required className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-google-blue focus:outline-none" rows="2"/>
+                    <input type="text" placeholder="Image URL (for card)" value={imageUrl} onChange={e => setImageUrl(e.target.value)} required className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-google-blue focus:outline-none"/>
+                </div>
+            </div>
 
-                            {/* CONTENT BLOCK CONFIG */}
-                            {(field.blockType === 'heading' || field.blockType === 'subheading') && (
-                                <input type="text" placeholder="Heading Text" value={field.content} onChange={e => handleSrsFormChange(index, 'content', e.target.value)} className="w-full p-2 border rounded" />
-                            )}
+            {/* --- Pricing --- */}
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                <h4 className="font-bold text-gray-700 text-sm uppercase tracking-wide mb-3">Service Type & Pricing</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <select value={serviceType} onChange={e => setServiceType(e.target.value)} className="w-full p-2.5 border rounded-lg bg-white focus:ring-2 focus:ring-google-blue">
+                        <option value="standard">Standard (Readymade Notes)</option>
+                        <option value="custom">Advanced (Project Request)</option>
+                    </select>
+                    <input type="number" placeholder={serviceType === 'standard' ? 'Price (0 for Free)' : 'Total Project Price (Optional)'} value={price} onChange={e => setPrice(e.target.value)} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-google-blue focus:outline-none"/>
+                </div>
+            </div>
 
-                            {field.blockType === 'paragraph' && (
-                                <div>
-                                    <textarea placeholder="Instructional Text (Markdown supported)" value={field.content} onChange={e => handleSrsFormChange(index, 'content', e.target.value)} className="w-full p-2 border rounded h-20" />
-                                </div>
-                            )}
+            {serviceType === 'standard' ? (
+              <>
+                {/* --- Page Content Builder (Standard) --- */}
+                <div>
+                    <h4 className="font-bold text-gray-700 text-sm uppercase tracking-wide mb-2 flex justify-between items-center">
+                        Page Content Builder
+                        <span className="text-xs font-normal text-gray-500 normal-case bg-gray-100 px-2 py-1 rounded">Drag handle to reorder</span>
+                    </h4>
+                    
+                    <div className="bg-gray-100 p-3 rounded-lg border border-gray-200 min-h-[100px]">
+                        <Reorder.Group axis="y" values={pageContent} onReorder={setPageContent}>
+                            {pageContent.map((block) => (
+                                <SortableItem key={block.uuid} item={block} onRemove={() => removePageContentBlock(block.uuid)}>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">{block.type}</label>
+                                    
+                                    {(block.type === 'heading' || block.type === 'subheading') && (
+                                        <input type="text" value={block.value} onChange={e => handlePageContentChange(block.uuid, 'value', e.target.value)} className="w-full p-2 border rounded text-sm" placeholder="Heading Text" />
+                                    )}
+                                    
+                                    {block.type === 'paragraph' && (
+                                        <>
+                                            <textarea value={block.value} onChange={e => handlePageContentChange(block.uuid, 'value', e.target.value)} className="w-full p-2 border rounded h-20 text-sm" placeholder="Paragraph Content" />
+                                            <p className="text-[10px] text-gray-400 mt-1">Markdown supported (**bold**, *italic*)</p>
+                                        </>
+                                    )}
+                                    
+                                    {block.type === 'image' && (
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                            <input type="url" placeholder="Image URL" value={block.url} onChange={e => handlePageContentChange(block.uuid, 'url', e.target.value)} className="w-full p-2 border rounded text-sm" />
+                                            <input type="text" placeholder="Alt Text" value={block.alt} onChange={e => handlePageContentChange(block.uuid, 'alt', e.target.value)} className="w-full p-2 border rounded text-sm" />
+                                        </div>
+                                    )}
+                                    
+                                    {block.type === 'file' && (
+                                        <div className="space-y-2">
+                                            <input type="text" placeholder="Display Name (e.g. 'Download PDF')" value={block.value} onChange={e => handlePageContentChange(block.uuid, 'value', e.target.value)} className="w-full p-2 border rounded text-sm" />
+                                            <input type="url" placeholder="File URL" value={block.url} onChange={e => handlePageContentChange(block.uuid, 'url', e.target.value)} className="w-full p-2 border rounded text-sm" />
+                                            <input type="url" placeholder="Icon URL (Optional)" value={block.iconUrl} onChange={e => handlePageContentChange(block.uuid, 'iconUrl', e.target.value)} className="w-full p-2 border rounded text-sm" />
+                                        </div>
+                                    )}
+                                    
+                                    {block.type === 'purchaseButton' && (
+                                        <div className="bg-yellow-50 text-yellow-800 text-sm p-2 rounded text-center border border-yellow-200 font-medium">
+                                            Purchase Button (₹{price || '...'})
+                                        </div>
+                                    )}
+                                </SortableItem>
+                            ))}
+                        </Reorder.Group>
 
-                            {field.blockType === 'image' && (
-                                <div className="space-y-2">
-                                    <input type="url" placeholder="Image URL" value={field.url} onChange={e => handleSrsFormChange(index, 'url', e.target.value)} className="w-full p-2 border rounded" />
-                                    <input type="text" placeholder="Alt Text" value={field.alt} onChange={e => handleSrsFormChange(index, 'alt', e.target.value)} className="w-full p-2 border rounded" />
-                                </div>
-                            )}
-
-                            {/* ✅ UPDATED: FILE LINK WITH ICON URL */}
-                            {field.blockType === 'file' && (
-                                <div className="space-y-2">
-                                    <input type="text" placeholder="Display Text (e.g. 'Download SRS Template')" value={field.content} onChange={e => handleSrsFormChange(index, 'content', e.target.value)} className="w-full p-2 border rounded" />
-                                    <input type="url" placeholder="File URL (Download Link)" value={field.url} onChange={e => handleSrsFormChange(index, 'url', e.target.value)} className="w-full p-2 border rounded" />
-                                    <input type="url" placeholder="Icon URL (Optional)" value={field.iconUrl} onChange={e => handleSrsFormChange(index, 'iconUrl', e.target.value)} className="w-full p-2 border rounded" />
-                                </div>
-                            )}
+                        {/* Add Buttons Grid */}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-3">
+                            <button type="button" onClick={() => addPageContentBlock('heading')} className="text-xs bg-white border border-gray-300 px-2 py-2 rounded hover:bg-gray-50 flex items-center justify-center gap-1 font-medium transition-colors"><FontAwesomeIcon icon={faHeading}/> Heading</button>
+                            <button type="button" onClick={() => addPageContentBlock('subheading')} className="text-xs bg-white border border-gray-300 px-2 py-2 rounded hover:bg-gray-50 flex items-center justify-center gap-1 font-medium transition-colors"><FontAwesomeIcon icon={faHeading} className="text-[10px]"/> Subheading</button>
+                            <button type="button" onClick={() => addPageContentBlock('paragraph')} className="text-xs bg-white border border-gray-300 px-2 py-2 rounded hover:bg-gray-50 flex items-center justify-center gap-1 font-medium transition-colors"><FontAwesomeIcon icon={faParagraph}/> Text</button>
+                            <button type="button" onClick={() => addPageContentBlock('image')} className="text-xs bg-white border border-gray-300 px-2 py-2 rounded hover:bg-gray-50 flex items-center justify-center gap-1 font-medium transition-colors"><FontAwesomeIcon icon={faImage}/> Image</button>
+                            <button type="button" onClick={() => addPageContentBlock('file')} className="text-xs bg-white border border-gray-300 px-2 py-2 rounded hover:bg-gray-50 flex items-center justify-center gap-1 font-medium transition-colors"><FontAwesomeIcon icon={faFileAlt}/> File Link</button>
+                            <button type="button" onClick={() => addPageContentBlock('purchaseButton')} className="text-xs bg-yellow-50 border border-yellow-300 text-yellow-700 px-2 py-2 rounded hover:bg-yellow-100 flex items-center justify-center gap-1 font-medium transition-colors"><FontAwesomeIcon icon={faWallet}/> Button</button>
                         </div>
-                    ))}
+                    </div>
                 </div>
 
-                <div className="flex flex-wrap gap-2">
-                    <button type="button" onClick={() => addSrsBlock('input')} className="text-xs bg-blue-100 text-blue-800 px-3 py-1.5 rounded flex items-center gap-1 hover:bg-blue-200 border border-blue-200 font-semibold"><FontAwesomeIcon icon={faKeyboard}/> Add Input Field</button>
-                    <div className="h-6 w-px bg-gray-300 mx-1"></div>
-                    <button type="button" onClick={() => addSrsBlock('heading')} className="text-xs bg-gray-100 px-3 py-1.5 rounded flex items-center gap-1 hover:bg-gray-200 border"><FontAwesomeIcon icon={faHeading}/> Heading</button>
-                    <button type="button" onClick={() => addSrsBlock('paragraph')} className="text-xs bg-gray-100 px-3 py-1.5 rounded flex items-center gap-1 hover:bg-gray-200 border"><FontAwesomeIcon icon={faParagraph}/> Text</button>
-                    <button type="button" onClick={() => addSrsBlock('image')} className="text-xs bg-gray-100 px-3 py-1.5 rounded flex items-center gap-1 hover:bg-gray-200 border"><FontAwesomeIcon icon={faImage}/> Image</button>
-                    <button type="button" onClick={() => addSrsBlock('file')} className="text-xs bg-gray-100 px-3 py-1.5 rounded flex items-center gap-1 hover:bg-gray-200 border"><FontAwesomeIcon icon={faFileLines}/> File Link</button>
+                {/* --- Downloads --- */}
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                    <h4 className="font-bold text-gray-700 text-sm uppercase tracking-wide mb-2">Paid/Free Downloads</h4>
+                    <div className="space-y-2">
+                        {contentUrls.map((field, index) => (
+                            <div key={index} className="flex flex-col sm:flex-row items-center gap-2">
+                                <input type="text" name="name" placeholder="File Name" value={field.name} onChange={e => handlePaidContentChange(index, e)} className="w-full sm:w-1/3 p-2 border rounded-lg text-sm"/>
+                                <div className="flex w-full sm:w-2/3 gap-2">
+                                    <input type="url" name="url" placeholder="URL" value={field.url} onChange={e => handlePaidContentChange(index, e)} className="w-full p-2 border rounded-lg text-sm"/>
+                                    {contentUrls.length > 1 && <button type="button" onClick={() => removePaidContentField(index)} className="px-3 py-1 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors"><FontAwesomeIcon icon={faTrash} /></button>}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    <button type="button" onClick={addPaidContentField} className="text-sm font-semibold text-google-blue hover:text-blue-700 mt-2 inline-flex items-center gap-1">
+                        <FontAwesomeIcon icon={faPlus} className="text-xs" /> Add Another File
+                    </button>
                 </div>
-             </>
-          )}
+              </>
+            ) : (
+               <>
+                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                      <label className="block text-sm font-bold text-gray-700 mb-1">Advance Amount</label>
+                      <input type="number" placeholder="Enter Amount (Optional)" value={advanceAmount} onChange={e => setAdvanceAmount(e.target.value)} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-google-blue"/>
+                  </div>
 
-          <div className="flex items-center gap-2 pt-4"><button type="submit" disabled={loading} className="w-full py-2 bg-google-blue text-white rounded font-semibold flex items-center justify-center gap-2 disabled:bg-blue-400 hover:bg-blue-700 transition-colors">{loading ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={serviceToEdit ? faEdit : faPlus} />}{loading ? 'Saving...' : (serviceToEdit ? 'Update Service' : 'Add Service')}</button>{serviceToEdit && (<button type="button" onClick={onCancelEdit} className="w-full py-2 bg-gray-200 rounded font-semibold hover:bg-gray-300 transition-colors">Cancel</button>)}</div>
+                  <div>
+                      <h4 className="font-bold text-gray-700 text-sm uppercase tracking-wide mb-2 flex justify-between items-center">
+                          Project Page Builder
+                          <span className="text-xs font-normal text-gray-500 normal-case bg-gray-100 px-2 py-1 rounded">Drag handle to reorder</span>
+                      </h4>
+                      <p className="text-xs text-gray-500 mb-3">Build your requirement form. Mix input fields for user data with informational content.</p>
+                      
+                      <div className="bg-gray-100 p-3 rounded-lg border border-gray-200 min-h-[100px]">
+                          <Reorder.Group axis="y" values={srsForm} onReorder={setSrsForm}>
+                              {srsForm.map((field) => (
+                                  <SortableItem key={field.uuid} item={field} onRemove={() => removeSrsBlock(field.uuid)}>
+                                      <div className="flex items-center gap-2 mb-2">
+                                          <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${field.blockType === 'input' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
+                                              {field.blockType}
+                                          </span>
+                                      </div>
+
+                                      {/* INPUT BLOCK */}
+                                      {field.blockType === 'input' && (
+                                          <div className="space-y-2">
+                                              <input type="text" placeholder="Field Label (e.g. 'Project Title')" value={field.label} onChange={e => handleSrsFormChange(field.uuid, 'label', e.target.value)} className="w-full p-2 border rounded text-sm" />
+                                              <div className="flex flex-col sm:flex-row gap-2">
+                                                  <select value={field.inputType} onChange={e => handleSrsFormChange(field.uuid, 'inputType', e.target.value)} className="w-full sm:w-1/2 p-2 border rounded bg-white text-sm">
+                                                      <option value="text">Single Line Text</option>
+                                                      <option value="textarea">Multi-line Text</option>
+                                                      <option value="file">User File Upload (Link)</option>
+                                                  </select>
+                                                  <label className="flex items-center gap-2 text-xs cursor-pointer border p-2 rounded w-full sm:w-1/2 bg-gray-50 hover:bg-gray-100">
+                                                      <input type="checkbox" checked={field.required} onChange={e => handleSrsFormChange(field.uuid, 'required', e.target.checked)} className="rounded text-google-blue focus:ring-google-blue" /> 
+                                                      Required Field
+                                                  </label>
+                                              </div>
+                                          </div>
+                                      )}
+
+                                      {/* CONTENT BLOCKS */}
+                                      {(field.blockType === 'heading' || field.blockType === 'subheading') && (
+                                          <input type="text" placeholder="Heading Text" value={field.content} onChange={e => handleSrsFormChange(field.uuid, 'content', e.target.value)} className="w-full p-2 border rounded text-sm" />
+                                      )}
+
+                                      {field.blockType === 'paragraph' && (
+                                          <textarea placeholder="Instructional Text (Markdown supported)" value={field.content} onChange={e => handleSrsFormChange(field.uuid, 'content', e.target.value)} className="w-full p-2 border rounded h-20 text-sm" />
+                                      )}
+
+                                      {field.blockType === 'image' && (
+                                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                              <input type="url" placeholder="Image URL" value={field.url} onChange={e => handleSrsFormChange(field.uuid, 'url', e.target.value)} className="w-full p-2 border rounded text-sm" />
+                                              <input type="text" placeholder="Alt Text" value={field.alt} onChange={e => handleSrsFormChange(field.uuid, 'alt', e.target.value)} className="w-full p-2 border rounded text-sm" />
+                                          </div>
+                                      )}
+
+                                      {field.blockType === 'file' && (
+                                          <div className="space-y-2">
+                                              <input type="text" placeholder="Display Text (e.g. 'Download Template')" value={field.content} onChange={e => handleSrsFormChange(field.uuid, 'content', e.target.value)} className="w-full p-2 border rounded text-sm" />
+                                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                  <input type="url" placeholder="File URL (Download Link)" value={field.url} onChange={e => handleSrsFormChange(field.uuid, 'url', e.target.value)} className="w-full p-2 border rounded text-sm" />
+                                                  <input type="url" placeholder="Icon URL (Optional)" value={field.iconUrl} onChange={e => handleSrsFormChange(field.uuid, 'iconUrl', e.target.value)} className="w-full p-2 border rounded text-sm" />
+                                              </div>
+                                          </div>
+                                      )}
+                                  </SortableItem>
+                              ))}
+                          </Reorder.Group>
+
+                          <div className="flex flex-wrap gap-2 mt-3">
+                              <button type="button" onClick={() => addSrsBlock('input')} className="text-xs bg-blue-50 text-blue-700 px-3 py-2 rounded-lg flex items-center gap-1 hover:bg-blue-100 border border-blue-200 font-semibold transition-colors"><FontAwesomeIcon icon={faKeyboard}/> Input Field</button>
+                              <div className="w-px bg-gray-300 mx-1 hidden sm:block"></div>
+                              <button type="button" onClick={() => addSrsBlock('heading')} className="text-xs bg-white px-3 py-2 rounded-lg flex items-center gap-1 hover:bg-gray-50 border border-gray-300 transition-colors"><FontAwesomeIcon icon={faHeading}/> Heading</button>
+                              <button type="button" onClick={() => addSrsBlock('paragraph')} className="text-xs bg-white px-3 py-2 rounded-lg flex items-center gap-1 hover:bg-gray-50 border border-gray-300 transition-colors"><FontAwesomeIcon icon={faParagraph}/> Text</button>
+                              <button type="button" onClick={() => addSrsBlock('image')} className="text-xs bg-white px-3 py-2 rounded-lg flex items-center gap-1 hover:bg-gray-50 border border-gray-300 transition-colors"><FontAwesomeIcon icon={faImage}/> Image</button>
+                              <button type="button" onClick={() => addSrsBlock('file')} className="text-xs bg-white px-3 py-2 rounded-lg flex items-center gap-1 hover:bg-gray-50 border border-gray-300 transition-colors"><FontAwesomeIcon icon={faFileLines}/> File</button>
+                          </div>
+                      </div>
+                  </div>
+               </>
+            )}
+
+          </div>
+
+          {/* --- Action Buttons --- */}
+          <div className="pt-4 border-t border-gray-100 flex flex-col sm:flex-row gap-3 bg-white mt-auto">
+             <button type="submit" disabled={loading} className="flex-1 py-3 bg-google-blue text-white rounded-lg font-bold flex items-center justify-center gap-2 disabled:bg-blue-400 hover:bg-blue-700 transition-all shadow-md active:scale-[0.98]">
+                {loading ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={serviceToEdit ? faEdit : faPlus} />}
+                {loading ? 'Saving...' : (serviceToEdit ? 'Update Service' : 'Create Service')}
+             </button>
+             {serviceToEdit && (
+                <button type="button" onClick={onCancelEdit} className="flex-1 sm:flex-none sm:w-auto px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-bold hover:bg-gray-200 transition-colors">
+                    Cancel
+                </button>
+             )}
+          </div>
         </form>
       </div>
     );
 };
 
-// ========== Add/Edit FAQ Form Component ==========
+// ========== Add/Edit FAQ Form Component (Unchanged logic, updated styling) ==========
 export const AddFaqForm = ({ faqToEdit, onFaqAdded, onFaqUpdated, onCancelEdit }) => {
     const [question, setQuestion] = useState('');
     const [answer, setAnswer] = useState('');
@@ -389,31 +536,31 @@ export const AddFaqForm = ({ faqToEdit, onFaqAdded, onFaqUpdated, onCancelEdit }
     };
 
     return (
-        <div className="bg-white p-6 rounded-lg shadow-md border text-left">
+        <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border text-left">
             <h3 className="text-lg font-semibold mb-4">{faqToEdit ? 'Edit FAQ' : 'Add a New FAQ'}</h3>
             <form onSubmit={handleSubmit} className="space-y-4">
-                <input type="text" placeholder="Question" value={question} onChange={e => setQuestion(e.target.value)} required className="w-full p-2 border rounded focus:ring-2 focus:ring-google-blue focus:outline-none" />
-                <textarea placeholder="Answer (HTML allowed)" value={answer} onChange={e => setAnswer(e.target.value)} required className="w-full p-2 border rounded h-24 focus:ring-2 focus:ring-google-blue focus:outline-none" />
-                <div className="flex gap-4">
+                <input type="text" placeholder="Question" value={question} onChange={e => setQuestion(e.target.value)} required className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-google-blue focus:outline-none transition-shadow" />
+                <textarea placeholder="Answer (HTML allowed)" value={answer} onChange={e => setAnswer(e.target.value)} required className="w-full p-2.5 border rounded-lg h-24 focus:ring-2 focus:ring-google-blue focus:outline-none transition-shadow" />
+                <div className="flex flex-col sm:flex-row gap-4">
                     <div className="flex-1">
-                         <label className="block text-sm font-medium text-gray-700">Order (Lower comes first)</label>
-                        <input type="number" placeholder="Sort Order" value={order} onChange={e => setOrder(e.target.value)} className="w-full p-2 border rounded focus:ring-2 focus:ring-google-blue focus:outline-none" />
+                         <label className="block text-sm font-medium text-gray-700 mb-1">Sort Order</label>
+                        <input type="number" placeholder="0" value={order} onChange={e => setOrder(e.target.value)} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-google-blue focus:outline-none" />
                     </div>
-                    <div className="flex items-end pb-2">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                            <input type="checkbox" checked={isActive} onChange={e => setIsActive(e.target.checked)} className="w-4 h-4 text-google-blue focus:ring-google-blue" />
-                            <span className="text-gray-700">Active</span>
+                    <div className="flex items-end pb-3">
+                        <label className="flex items-center gap-2 cursor-pointer p-2 border rounded-lg bg-gray-50 w-full sm:w-auto hover:bg-gray-100">
+                            <input type="checkbox" checked={isActive} onChange={e => setIsActive(e.target.checked)} className="w-4 h-4 text-google-blue focus:ring-google-blue rounded" />
+                            <span className="text-gray-700 font-medium select-none">Active</span>
                         </label>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2 pt-4">
-                    <button type="submit" disabled={loading} className="w-full py-2 bg-google-blue text-white rounded font-semibold flex items-center justify-center gap-2 disabled:bg-blue-400 hover:bg-blue-700 transition-colors">
+                <div className="flex flex-col sm:flex-row items-center gap-3 pt-4">
+                    <button type="submit" disabled={loading} className="w-full py-2.5 bg-google-blue text-white rounded-lg font-semibold flex items-center justify-center gap-2 disabled:bg-blue-400 hover:bg-blue-700 transition-colors shadow-sm">
                         {loading ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faqToEdit ? faEdit : faPlus} />}
                         {loading ? 'Saving...' : (faqToEdit ? 'Update FAQ' : 'Add FAQ')}
                     </button>
                     {faqToEdit && (
-                        <button type="button" onClick={onCancelEdit} className="w-full py-2 bg-gray-200 rounded font-semibold hover:bg-gray-300 transition-colors">Cancel</button>
+                        <button type="button" onClick={onCancelEdit} className="w-full sm:w-auto px-6 py-2.5 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition-colors">Cancel</button>
                     )}
                 </div>
             </form>
