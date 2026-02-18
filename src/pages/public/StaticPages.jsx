@@ -76,7 +76,7 @@ export const ContactPage = () => {
             'name': 'Surya Wave',
             'url': 'https://suryawave.me',
             'contactPoint': [
-                { '@type': 'ContactPoint', 'contactType': 'customer support', 'email': 'suryawaveofficial@gmail.com', 'availableLanguage': 'English' },
+                { '@type': 'ContactPoint', 'contactType': 'customer support', 'email': 'contact@suryawave.me', 'availableLanguage': 'English' },
                 { '@type': 'ContactPoint', 'contactType': 'technical support', 'telephone': `+${import.meta.env.VITE_ADMIN_WHATSAPP_NUMBER}`, 'contactOption': 'TollFree', 'areaServed': 'IN', 'availableLanguage': 'English' }
             ]
         }
@@ -99,7 +99,7 @@ export const ContactPage = () => {
                         <FontAwesomeIcon icon={faShareNodes} className="text-3xl text-google-red mb-3" />
                         <h2 className="text-xl font-semibold mb-2">Email Us</h2>
                         <p className="text-gray-600 mb-3">For any inquiries, support requests, or feedback, please send us an email.</p>
-                        <a href="mailto:suryawaveofficial@gmail.com" className="font-medium text-google-blue hover:underline">suryawaveofficial@gmail.com</a>
+                        <a href="mailto:contact@suryawave.me" className="font-medium text-google-blue hover:underline">contact@suryawave.me</a>
                     </div>
                     <div className="bg-white p-6 rounded-lg border shadow-sm transition-transform hover:-translate-y-1 duration-300">
                         <FontAwesomeIcon icon={faTools} className="text-3xl text-google-green mb-3" />
