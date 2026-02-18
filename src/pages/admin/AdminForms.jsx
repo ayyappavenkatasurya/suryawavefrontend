@@ -8,7 +8,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
     faEdit, faPlus, faSpinner, faHeading, faParagraph, 
     faImage, faFileAlt, faWallet, faKeyboard, faFileLines,
-    faTrash, faRetweet, faCheckCircle
+    faTrash, faRetweet, faCheckCircle, faVideo
 } from '@fortawesome/free-solid-svg-icons';
 import api from '../../services';
 
@@ -111,7 +111,7 @@ export const AddArticleForm = ({ articleToEdit, onArticleAdded, onArticleUpdated
     );
 };
 
-// ========== Add/Edit Service Form Component (Click-to-Swap Version) ==========
+// ========== Add/Edit Service Form Component ==========
 export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated, onCancelEdit, onFormChange }) => {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
@@ -189,6 +189,7 @@ export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated
         if (type === 'heading' || type === 'subheading' || type === 'paragraph') newBlock.value = ''; 
         if (type === 'image') { newBlock.url = ''; newBlock.alt = ''; } 
         if (type === 'file') { newBlock.url = ''; newBlock.value = ''; newBlock.iconUrl = ''; } 
+        if (type === 'video') { newBlock.url = ''; } // New Video Block
         setPageContent([...pageContent, newBlock]); 
     };
 
@@ -198,7 +199,6 @@ export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated
 
     const removePageContentBlock = (index) => { 
         setPageContent(prev => prev.filter((_, i) => i !== index)); 
-        // Reset swap if the deleted item was selected
         if (swapListType === 'page' && swapSourceIndex === index) {
             setSwapSourceIndex(null);
             setSwapListType(null);
@@ -216,6 +216,8 @@ export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated
             newBlock.url = ''; newBlock.alt = '';
         } else if (type === 'file') {
             newBlock.url = ''; newBlock.content = ''; newBlock.iconUrl = '';
+        } else if (type === 'video') {
+            newBlock.url = ''; // New Video Block
         }
         setSrsForm([...srsForm, newBlock]);
     };
@@ -234,21 +236,16 @@ export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated
 
     // --- SWAP LOGIC (No Toasts) ---
     const handleSwapClick = (index, type) => {
-        // If no item is selected, select this one
         if (swapSourceIndex === null) {
             setSwapSourceIndex(index);
             setSwapListType(type);
         } 
-        // If clicking the SAME item, deselect it
         else if (swapSourceIndex === index && swapListType === type) {
             setSwapSourceIndex(null);
             setSwapListType(null);
         } 
-        // If clicking a different item in the SAME list, swap them
         else if (swapListType === type) {
             const list = type === 'page' ? [...pageContent] : [...srsForm];
-            
-            // Perform Swap
             const temp = list[swapSourceIndex];
             list[swapSourceIndex] = list[index];
             list[index] = temp;
@@ -259,7 +256,6 @@ export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated
             setSwapSourceIndex(null);
             setSwapListType(null);
         } 
-        // If clicking item in different list (edge case), change selection
         else {
             setSwapSourceIndex(index);
             setSwapListType(type);
@@ -286,7 +282,7 @@ export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated
       finally { setLoading(false); }
     };
 
-    // Reusable Item Wrapper for UI
+    // Reusable Item Wrapper
     const SortableItem = ({ index, type, children, onRemove, isSelected }) => {
         return (
             <div className={`
@@ -391,6 +387,13 @@ export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated
                                         <input type="url" placeholder="Icon URL (Optional)" value={block.iconUrl} onChange={e => handlePageContentChange(block.uuid, 'iconUrl', e.target.value)} className="w-full p-2 border rounded text-sm" />
                                     </div>
                                 )}
+
+                                {block.type === 'video' && (
+                                    <div className="space-y-2">
+                                        <input type="url" placeholder="Video URL (YouTube/Vimeo)" value={block.url} onChange={e => handlePageContentChange(block.uuid, 'url', e.target.value)} className="w-full p-2 border rounded text-sm" />
+                                        <p className="text-[10px] text-gray-400">Supports YouTube/Vimeo links.</p>
+                                    </div>
+                                )}
                                 
                                 {block.type === 'purchaseButton' && (
                                     <div className="bg-yellow-50 text-yellow-800 text-sm p-2 rounded text-center border border-yellow-200 font-medium">
@@ -401,13 +404,14 @@ export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated
                         ))}
 
                         {/* Add Buttons Grid */}
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-3">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
                             <button type="button" onClick={() => addPageContentBlock('heading')} className="text-xs bg-white border border-gray-300 px-2 py-2 rounded hover:bg-gray-50 flex items-center justify-center gap-1 font-medium transition-colors"><FontAwesomeIcon icon={faHeading}/> Heading</button>
-                            <button type="button" onClick={() => addPageContentBlock('subheading')} className="text-xs bg-white border border-gray-300 px-2 py-2 rounded hover:bg-gray-50 flex items-center justify-center gap-1 font-medium transition-colors"><FontAwesomeIcon icon={faHeading} className="text-[10px]"/> Subheading</button>
+                            <button type="button" onClick={() => addPageContentBlock('subheading')} className="text-xs bg-white border border-gray-300 px-2 py-2 rounded hover:bg-gray-50 flex items-center justify-center gap-1 font-medium transition-colors"><FontAwesomeIcon icon={faHeading} className="text-[10px]"/> Sub</button>
                             <button type="button" onClick={() => addPageContentBlock('paragraph')} className="text-xs bg-white border border-gray-300 px-2 py-2 rounded hover:bg-gray-50 flex items-center justify-center gap-1 font-medium transition-colors"><FontAwesomeIcon icon={faParagraph}/> Text</button>
                             <button type="button" onClick={() => addPageContentBlock('image')} className="text-xs bg-white border border-gray-300 px-2 py-2 rounded hover:bg-gray-50 flex items-center justify-center gap-1 font-medium transition-colors"><FontAwesomeIcon icon={faImage}/> Image</button>
-                            <button type="button" onClick={() => addPageContentBlock('file')} className="text-xs bg-white border border-gray-300 px-2 py-2 rounded hover:bg-gray-50 flex items-center justify-center gap-1 font-medium transition-colors"><FontAwesomeIcon icon={faFileAlt}/> File Link</button>
-                            <button type="button" onClick={() => addPageContentBlock('purchaseButton')} className="text-xs bg-yellow-50 border border-yellow-300 text-yellow-700 px-2 py-2 rounded hover:bg-yellow-100 flex items-center justify-center gap-1 font-medium transition-colors"><FontAwesomeIcon icon={faWallet}/> Button</button>
+                            <button type="button" onClick={() => addPageContentBlock('file')} className="text-xs bg-white border border-gray-300 px-2 py-2 rounded hover:bg-gray-50 flex items-center justify-center gap-1 font-medium transition-colors"><FontAwesomeIcon icon={faFileAlt}/> File</button>
+                            <button type="button" onClick={() => addPageContentBlock('video')} className="text-xs bg-white border border-gray-300 px-2 py-2 rounded hover:bg-gray-50 flex items-center justify-center gap-1 font-medium transition-colors"><FontAwesomeIcon icon={faVideo}/> Video</button>
+                            <button type="button" onClick={() => addPageContentBlock('purchaseButton')} className="text-xs bg-yellow-50 border border-yellow-300 text-yellow-700 px-2 py-2 rounded hover:bg-yellow-100 flex items-center justify-center gap-1 font-medium transition-colors col-span-2"><FontAwesomeIcon icon={faWallet}/> Buy Button</button>
                         </div>
                     </div>
                 </div>
@@ -505,16 +509,23 @@ export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated
                                           </div>
                                       </div>
                                   )}
+
+                                  {field.blockType === 'video' && (
+                                      <div className="space-y-2">
+                                          <input type="url" placeholder="Video URL (YouTube/Vimeo)" value={field.url} onChange={e => handleSrsFormChange(field.uuid, 'url', e.target.value)} className="w-full p-2 border rounded text-sm" />
+                                      </div>
+                                  )}
                               </SortableItem>
                           ))}
 
                           <div className="flex flex-wrap gap-2 mt-3">
-                              <button type="button" onClick={() => addSrsBlock('input')} className="text-xs bg-blue-50 text-blue-700 px-3 py-2 rounded-lg flex items-center gap-1 hover:bg-blue-100 border border-blue-200 font-semibold transition-colors"><FontAwesomeIcon icon={faKeyboard}/> Input Field</button>
+                              <button type="button" onClick={() => addSrsBlock('input')} className="text-xs bg-blue-50 text-blue-700 px-3 py-2 rounded-lg flex items-center gap-1 hover:bg-blue-100 border border-blue-200 font-semibold transition-colors"><FontAwesomeIcon icon={faKeyboard}/> Input</button>
                               <div className="w-px bg-gray-300 mx-1 hidden sm:block"></div>
-                              <button type="button" onClick={() => addSrsBlock('heading')} className="text-xs bg-white px-3 py-2 rounded-lg flex items-center gap-1 hover:bg-gray-50 border border-gray-300 transition-colors"><FontAwesomeIcon icon={faHeading}/> Heading</button>
-                              <button type="button" onClick={() => addSrsBlock('paragraph')} className="text-xs bg-white px-3 py-2 rounded-lg flex items-center gap-1 hover:bg-gray-50 border border-gray-300 transition-colors"><FontAwesomeIcon icon={faParagraph}/> Text</button>
-                              <button type="button" onClick={() => addSrsBlock('image')} className="text-xs bg-white px-3 py-2 rounded-lg flex items-center gap-1 hover:bg-gray-50 border border-gray-300 transition-colors"><FontAwesomeIcon icon={faImage}/> Image</button>
+                              <button type="button" onClick={() => addSrsBlock('heading')} className="text-xs bg-white px-3 py-2 rounded-lg flex items-center gap-1 hover:bg-gray-50 border border-gray-300 transition-colors"><FontAwesomeIcon icon={faHeading}/> H</button>
+                              <button type="button" onClick={() => addSrsBlock('paragraph')} className="text-xs bg-white px-3 py-2 rounded-lg flex items-center gap-1 hover:bg-gray-50 border border-gray-300 transition-colors"><FontAwesomeIcon icon={faParagraph}/> P</button>
+                              <button type="button" onClick={() => addSrsBlock('image')} className="text-xs bg-white px-3 py-2 rounded-lg flex items-center gap-1 hover:bg-gray-50 border border-gray-300 transition-colors"><FontAwesomeIcon icon={faImage}/> Img</button>
                               <button type="button" onClick={() => addSrsBlock('file')} className="text-xs bg-white px-3 py-2 rounded-lg flex items-center gap-1 hover:bg-gray-50 border border-gray-300 transition-colors"><FontAwesomeIcon icon={faFileLines}/> File</button>
+                              <button type="button" onClick={() => addSrsBlock('video')} className="text-xs bg-white px-3 py-2 rounded-lg flex items-center gap-1 hover:bg-gray-50 border border-gray-300 transition-colors"><FontAwesomeIcon icon={faVideo}/> Vid</button>
                           </div>
                       </div>
                   </div>
@@ -540,7 +551,7 @@ export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated
     );
 };
 
-// ========== Add/Edit FAQ Form Component (Unchanged logic, updated styling) ==========
+// ========== Add/Edit FAQ Form Component ==========
 export const AddFaqForm = ({ faqToEdit, onFaqAdded, onFaqUpdated, onCancelEdit }) => {
     const [question, setQuestion] = useState('');
     const [answer, setAnswer] = useState('');

@@ -8,6 +8,14 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFileAlt } from '@fortawesome/free-solid-svg-icons';
 import { LazyImage } from '../LazyImage';
 
+// Helper for YouTube Embed
+const getEmbedUrl = (url) => {
+    if (!url) return '';
+    const ytId = url.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    if (ytId) return `https://www.youtube.com/embed/${ytId[1]}`;
+    return url;
+};
+
 export const CustomProjectForm = ({ service, onSubmit }) => {
     const [formData, setFormData] = useState({});
     const [loading, setLoading] = useState(false);
@@ -69,6 +77,20 @@ export const CustomProjectForm = ({ service, onSubmit }) => {
                 </div>
             );
         }
+        if (block.blockType === 'video') {
+            return (
+                <div key={index} className="my-6 w-full aspect-video rounded-lg overflow-hidden border bg-black shadow-sm">
+                    <iframe 
+                        src={getEmbedUrl(block.url)} 
+                        className="w-full h-full" 
+                        frameBorder="0" 
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                        allowFullScreen
+                        title="Embedded Video"
+                    ></iframe>
+                </div>
+            );
+        }
 
         // --- INPUT BLOCKS (Legacy & New) ---
         // Fallback: If blockType is undefined or 'input', treat as input form field
@@ -79,7 +101,6 @@ export const CustomProjectForm = ({ service, onSubmit }) => {
                         {block.label} {block.required && <span className="text-red-500">*</span>}
                     </label>
                     
-                    {/* ✅ FIX: Removed placeholder */}
                     {block.inputType === 'text' && (
                         <input 
                             type="text" 
@@ -89,7 +110,6 @@ export const CustomProjectForm = ({ service, onSubmit }) => {
                         />
                     )}
                     
-                    {/* ✅ FIX: Removed placeholder */}
                     {block.inputType === 'textarea' && (
                         <textarea 
                             rows="5" 

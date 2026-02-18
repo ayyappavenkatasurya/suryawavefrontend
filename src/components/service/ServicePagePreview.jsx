@@ -1,3 +1,5 @@
+// frontend/src/components/service/ServicePagePreview.jsx
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
@@ -18,6 +20,14 @@ const markdownComponents = {
     a: ({node, ...props}) => <a className="text-google-blue hover:underline font-medium" target="_blank" rel="noopener noreferrer" {...props} />,
     strong: ({node, ...props}) => <span className="font-bold text-gray-900" {...props} />,
     blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-gray-300 pl-4 italic text-gray-600 my-4" {...props} />,
+};
+
+// Helper for YouTube Embed
+const getEmbedUrl = (url) => {
+    if (!url) return '';
+    const ytId = url.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    if (ytId) return `https://www.youtube.com/embed/${ytId[1]}`;
+    return url;
 };
 
 export const ServicePagePreview = ({ service, onPurchase, isOwned }) => {
@@ -73,6 +83,18 @@ export const ServicePagePreview = ({ service, onPurchase, isOwned }) => {
             />
         );
         case 'file': return (<div key={index} className="my-4 p-4 border rounded-lg bg-gray-50"><a href={block.url || '#'} target="_blank" rel="noopener noreferrer" className="font-medium text-google-blue hover:underline flex items-center gap-3">{block.iconUrl && <img src={block.iconUrl} alt="" className="w-6 h-6 object-contain" />}<span>{block.value || 'Sample File'}</span></a></div>);
+        case 'video': return (
+            <div key={index} className="my-6 w-full aspect-video rounded-lg overflow-hidden border bg-black shadow-sm">
+                <iframe 
+                    src={getEmbedUrl(block.url)} 
+                    className="w-full h-full" 
+                    frameBorder="0" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                    allowFullScreen
+                    title="Embedded Video"
+                ></iframe>
+            </div>
+        );
         case 'purchaseButton': return (
             <div key={index} className="my-8 text-center">
                 {hasOffer && !isFree && !isOwned && (
