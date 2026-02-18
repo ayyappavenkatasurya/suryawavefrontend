@@ -8,7 +8,7 @@ import { SEO, Spinner, ServiceContentModal, DashboardItemSkeleton, SkeletonPulse
 import { useAuth } from '../context';
 import api from '../services';
 import { requestForToken } from '../firebase.jsx';
-import { getSocket } from '../socket.js'; // ✅ SOCKET IMPORT
+import { getSocket } from '../socket.js';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
@@ -179,17 +179,19 @@ const DashboardItem = React.memo(({ item, openContentModal }) => {
         }
     };
     
+    // ✅ FIX: Enhanced Share Handler to handle Custom Projects correctly
     const handleShare = async () => {
       const service = item.rawItem.service;
-      if (!service) {
-        toast.error('Service data not available.');
+      
+      if (!service || !service.slug) {
+        toast.error('Service link not available.');
         return;
       }
       
       setIsSharing(true);
       const shareData = {
           title: service.title,
-          text: service.description,
+          text: service.description || service.title,
           url: `${window.location.origin}/services/${service.slug}`,
       };
 
@@ -207,6 +209,20 @@ const DashboardItem = React.memo(({ item, openContentModal }) => {
       } finally {
           setIsSharing(false);
       }
+    };
+
+    // ✅ NEW: Handle Opening Modal for Custom Projects (Normalizing Data)
+    const handleOpen = () => {
+        if (item.type === 'standard') {
+            openContentModal(item.rawItem.service);
+        } else if (item.type === 'custom') {
+            // Transform Custom Project Deliverables to match ServiceContentModal format
+            const modalData = {
+                ...item.rawItem.service,
+                contentUrls: item.rawItem.finalProjectContent || []
+            };
+            openContentModal(modalData);
+        }
     };
 
     const statusText = item.status.replace(/_/g, ' ');
@@ -239,9 +255,10 @@ const DashboardItem = React.memo(({ item, openContentModal }) => {
                 })()}
 
                 <div className="flex flex-wrap gap-2 items-center">
+                    {/* STANDARD COMPLETED */}
                     {item.type === 'standard' && item.status === 'completed' && (
                         <>
-                            <button onClick={() => openContentModal(item.rawItem.service)} className="px-3 py-1.5 text-sm bg-google-blue text-white rounded-md hover:bg-blue-700 flex items-center gap-2"><FontAwesomeIcon icon={faFolderOpen}/> Open</button>
+                            <button onClick={handleOpen} className="px-3 py-1.5 text-sm bg-google-blue text-white rounded-md hover:bg-blue-700 flex items-center gap-2"><FontAwesomeIcon icon={faFolderOpen}/> Open</button>
                             <button onClick={handleShare} disabled={isSharing} className="px-3 py-1.5 text-sm bg-green-500 text-white rounded-md hover:bg-green-600 flex items-center gap-2 disabled:bg-gray-400">
                                 {isSharing ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faShareNodes}/>}
                                 Share
@@ -251,7 +268,10 @@ const DashboardItem = React.memo(({ item, openContentModal }) => {
                             </a>
                         </>
                     )}
+
+                    {/* CUSTOM PROJECT STATUSES */}
                     {item.type === 'custom' && item.status === 'submitted' && <p className="text-sm text-indigo-700 p-2 bg-indigo-100 rounded-md text-center">Request under review</p>}
+                    
                     {item.type === 'custom' && item.status === 'pending_advance' && (
                         <>
                             {item.rawItem.advance.status === 'failed' && <p className="text-sm text-red-700 w-full text-center font-semibold">Verification failed. Please try again.</p>}
@@ -261,7 +281,9 @@ const DashboardItem = React.memo(({ item, openContentModal }) => {
                             </Link>
                         </>
                     )}
+                    
                     {item.type === 'custom' && item.status === 'in_progress' && <a href={`https://wa.me/${import.meta.env.VITE_ADMIN_WHATSAPP_NUMBER}`} target="_blank" rel="noopener noreferrer" className="px-3 py-1.5 text-sm bg-green-500 text-white rounded-md hover:bg-green-600 flex items-center gap-2 justify-center"><FontAwesomeIcon icon={faWhatsapp}/> Chat with Developer</a>}
+                    
                     {item.type === 'custom' && item.status === 'payment_pending' && (
                         <>
                              {item.rawItem.fullPayment.status === 'failed' && <p className="text-sm text-red-700 w-full text-center font-semibold">Verification failed. Please try again.</p>}
@@ -270,14 +292,15 @@ const DashboardItem = React.memo(({ item, openContentModal }) => {
                             </Link>
                         </>
                     )}
-                     {item.type === 'custom' && (item.status === 'advance_pending' || item.status === 'final_payment_pending') && <p className="text-sm text-yellow-700 p-2 bg-yellow-100 rounded-md text-center">Verification Pending</p>}
+                    
+                    {item.type === 'custom' && (item.status === 'advance_pending' || item.status === 'final_payment_pending') && <p className="text-sm text-yellow-700 p-2 bg-yellow-100 rounded-md text-center">Verification Pending</p>}
+                    
+                    {/* ✅ FIX: CUSTOM COMPLETED NOW HAS OPEN & SHARE BUTTONS */}
                     {item.type === 'custom' && item.status === 'completed' && (
                         <>
-                            {item.rawItem.finalProjectContent && item.rawItem.finalProjectContent.map((content, index) => (
-                                <a key={index} href={content.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm bg-google-blue text-white rounded-md hover:bg-blue-700 px-3 py-1.5">
-                                    <FontAwesomeIcon icon={faFolderOpen}/> {content.name}
-                                </a>
-                            ))}
+                            <button onClick={handleOpen} className="px-3 py-1.5 text-sm bg-google-blue text-white rounded-md hover:bg-blue-700 flex items-center gap-2">
+                                <FontAwesomeIcon icon={faFolderOpen}/> Open
+                            </button>
                              <button onClick={handleShare} disabled={isSharing} className="px-3 py-1.5 text-sm bg-green-500 text-white rounded-md hover:bg-green-600 flex items-center gap-2 disabled:bg-gray-400">
                                 {isSharing ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faShareNodes}/>}
                                 Share
