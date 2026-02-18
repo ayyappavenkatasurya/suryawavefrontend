@@ -1,17 +1,18 @@
 // frontend/src/pages/userpages.jsx
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { SEO, Spinner, ServiceContentModal, DashboardItemSkeleton, SkeletonPulse } from '../components';
 import { useAuth } from '../context';
 import api from '../services';
 import { requestForToken } from '../firebase.jsx';
+import { getSocket } from '../socket.js'; // ✅ SOCKET IMPORT
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
-    faHistory, faSpinner, faFolderOpen, faShareNodes, faBell, faSignOutAlt, faUserShield, faTrashAlt, faExclamationTriangle, faSync
+    faHistory, faSpinner, faFolderOpen, faShareNodes, faBell, faSignOutAlt, faUserShield, faTrashAlt, faExclamationTriangle, faSync, faBolt
 } from '@fortawesome/free-solid-svg-icons';
 import { faWhatsapp, faGoogle } from '@fortawesome/free-brands-svg-icons';
 import { LazyImage } from '../components/LazyImage';
@@ -84,7 +85,7 @@ export const ProfilePage = () => {
     };
 
     const handleDeleteAccount = async () => {
-        if (!window.confirm("Are you sure? This will PERMANENTLY delete your account and all associated data. This action cannot be undone.")) {
+        if (!window.confirm("Are you sure? This will PERMANENTLY delete your account and all associated data.")) {
             return;
         }
         
@@ -95,7 +96,7 @@ export const ProfilePage = () => {
             logout(); 
             navigate('/');
         } catch (error) {
-            toast.error("Failed to delete account. Please try again or contact support.");
+            toast.error("Failed to delete account.");
             console.error("Delete account error:", error);
         } finally {
             setIsDeleting(false);
@@ -149,10 +150,6 @@ export const ProfilePage = () => {
                             {isDeleting ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faTrashAlt} />}
                             Delete My Account
                         </button>
-                        <p className="text-xs text-gray-500 mt-2 text-center">
-                            <FontAwesomeIcon icon={faExclamationTriangle} className="mr-1 text-orange-500" />
-                            Warning: Deleting your account will permanently remove your data, including purchased services and project requests.
-                        </p>
                     </div>
                 </div>
             </div>
@@ -185,7 +182,7 @@ const DashboardItem = React.memo(({ item, openContentModal }) => {
     const handleShare = async () => {
       const service = item.rawItem.service;
       if (!service) {
-        toast.error('Service data not available for sharing.');
+        toast.error('Service data not available.');
         return;
       }
       
@@ -205,8 +202,7 @@ const DashboardItem = React.memo(({ item, openContentModal }) => {
           }
       } catch (error) {
           if (error.name !== 'AbortError') {
-              console.error('Share failed:', error);
-              toast.error('Could not share or copy link.');
+              toast.error('Could not share.');
           }
       } finally {
           setIsSharing(false);
@@ -216,7 +212,7 @@ const DashboardItem = React.memo(({ item, openContentModal }) => {
     const statusText = item.status.replace(/_/g, ' ');
 
     return (
-        <div className="bg-white p-4 sm:p-5 rounded-lg shadow-sm border flex flex-row gap-4 transition-transform hover:shadow-md">
+        <div className="bg-white p-4 sm:p-5 rounded-lg shadow-sm border flex flex-row gap-4 transition-transform hover:shadow-md animate-fadeIn">
             <LazyImage src={item.imageUrl} alt={item.title} className="w-24 h-24 md:w-28 md:h-28 object-cover rounded-md flex-shrink-0" containerClassName="rounded-md" />
             <div className="flex-grow text-left">
                 <div className="flex flex-wrap gap-2 items-center mb-1">
@@ -357,7 +353,7 @@ const PaymentSubmissionHistory = ({ requests, orders }) => {
     return (
         <div className="space-y-3">
             {paymentHistory.map((payment, index) => (
-                <div key={index} className="bg-white p-3 rounded-lg shadow-sm border">
+                <div key={index} className="bg-white p-3 rounded-lg shadow-sm border animate-fadeIn">
                     <div className="flex justify-between items-start">
                         <div>
                             <p className="font-semibold">{payment.service}</p>
@@ -379,30 +375,49 @@ const PaymentSubmissionHistory = ({ requests, orders }) => {
 export const UserDashboardPage = () => {
     const { user, loading: userLoading } = useAuth();
     const { pathname } = useLocation();
+    const queryClient = useQueryClient();
     
-    // ✅ REAL-TIME UPDATES: refetchInterval: 4000 (4 seconds)
-    const { data: orders = [], isLoading: ordersLoading, isFetching: isOrdersFetching } = useQuery({
+    // ✅ INTELLIGENT REAL-TIME: Removed polling. Added Socket listener.
+    useEffect(() => {
+        const socket = getSocket();
+        
+        const handleUpdate = () => {
+            console.log("⚡ Real-time update received!");
+            toast.success("Dashboard updated!", { id: 'live-update', duration: 2000, icon: '⚡' });
+            queryClient.invalidateQueries(['myOrders']);
+            queryClient.invalidateQueries(['myProjectRequests']);
+        };
+
+        socket.on('order_updated', handleUpdate);
+        socket.on('project_updated', handleUpdate);
+
+        return () => {
+            socket.off('order_updated', handleUpdate);
+            socket.off('project_updated', handleUpdate);
+        };
+    }, [queryClient]);
+
+    const { data: orders = [], isLoading: ordersLoading } = useQuery({
         queryKey: ['myOrders'],
         queryFn: async () => {
             const { data } = await api.get('/api/orders/myorders');
             return data;
         },
         enabled: !!user,
-        refetchInterval: 4000, 
+        staleTime: Infinity, // Rely on socket/invalidation
     });
 
-    const { data: projectRequests = [], isLoading: requestsLoading, isFetching: isRequestsFetching } = useQuery({
+    const { data: projectRequests = [], isLoading: requestsLoading } = useQuery({
         queryKey: ['myProjectRequests'],
         queryFn: async () => {
             const { data } = await api.get('/api/project-requests/my-requests');
             return data;
         },
         enabled: !!user,
-        refetchInterval: 4000, 
+        staleTime: Infinity, // Rely on socket/invalidation
     });
 
     const dataLoading = ordersLoading || requestsLoading;
-    const isLiveUpdating = isOrdersFetching || isRequestsFetching;
     
     const [isContentModalOpen, setContentModalOpen] = useState(false);
     const [selectedService, setSelectedService] = useState(null);
@@ -443,11 +458,9 @@ export const UserDashboardPage = () => {
         <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8 text-left">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-3xl font-bold">Dashboard</h1>
-            {isLiveUpdating && (
-                 <div className="flex items-center gap-2 text-xs text-google-blue font-medium bg-blue-50 px-2 py-1 rounded-full animate-pulse">
-                     <FontAwesomeIcon icon={faSync} spin /> Live Updates
-                 </div>
-            )}
+            <div className="flex items-center gap-2 text-xs text-google-green font-medium bg-green-50 px-3 py-1 rounded-full border border-green-200 animate-pulse">
+                <FontAwesomeIcon icon={faBolt} /> Live Connection Active
+            </div>
           </div>
 
           {/* MY SERVICES & PROJECTS SECTION */}

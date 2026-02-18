@@ -6,7 +6,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 
 export const StatsView = ({ approveOrderMutation, rejectOrderMutation, approveProjectPayment, rejectProjectPayment, actionLoading }) => {
     
-    // Retrieve data from cache (populated by parent polling)
+    // Retrieve data from cache
     const queryClient = useQueryClient();
     const stats = queryClient.getQueryData(['adminStats']);
 
@@ -14,6 +14,7 @@ export const StatsView = ({ approveOrderMutation, rejectOrderMutation, approvePr
         return (
             <div className="grid grid-cols-4 gap-4 animate-pulse">
                 {[1,2,3,4].map(i => <div key={i} className="h-32 bg-gray-200 rounded-lg"></div>)}
+                <div className="col-span-4 h-64 bg-gray-200 rounded-lg mt-4"></div>
             </div>
         );
     }
@@ -56,13 +57,21 @@ export const StatsView = ({ approveOrderMutation, rejectOrderMutation, approvePr
                                             <div className="flex gap-2">
                                                 {item.paymentType === 'standard' ? (
                                                     <>
-                                                        <button onClick={() => approveOrderMutation.mutate(item.id)} disabled={actionLoading.id === item.id} className="text-green-600 hover:bg-green-50 px-2 py-1 rounded font-medium text-xs border border-green-200">Approve</button>
-                                                        <button onClick={() => rejectOrderMutation.mutate(item.id)} disabled={actionLoading.id === item.id} className="text-red-600 hover:bg-red-50 px-2 py-1 rounded font-medium text-xs border border-red-200">Reject</button>
+                                                        <button onClick={() => approveOrderMutation.mutate(item.id)} disabled={actionLoading.id === item.id} className="text-green-600 hover:bg-green-50 px-2 py-1 rounded font-medium text-xs border border-green-200">
+                                                            {actionLoading.id === item.id && actionLoading.type === 'approve' ? <FontAwesomeIcon icon={faSpinner} spin /> : 'Approve'}
+                                                        </button>
+                                                        <button onClick={() => rejectOrderMutation.mutate(item.id)} disabled={actionLoading.id === item.id} className="text-red-600 hover:bg-red-50 px-2 py-1 rounded font-medium text-xs border border-red-200">
+                                                            {actionLoading.id === item.id && actionLoading.type === 'reject' ? <FontAwesomeIcon icon={faSpinner} spin /> : 'Reject'}
+                                                        </button>
                                                     </>
                                                 ) : (
                                                     <>
-                                                        <button onClick={() => approveProjectPayment(item.id, item.paymentType)} disabled={actionLoading.id === item.id} className="text-green-600 hover:bg-green-50 px-2 py-1 rounded font-medium text-xs border border-green-200">Approve</button>
-                                                        <button onClick={() => rejectProjectPayment(item.id, item.paymentType)} disabled={actionLoading.id === item.id} className="text-red-600 hover:bg-red-50 px-2 py-1 rounded font-medium text-xs border border-red-200">Reject</button>
+                                                        <button onClick={() => approveProjectPayment(item.id, item.paymentType)} disabled={actionLoading.id === item.id} className="text-green-600 hover:bg-green-50 px-2 py-1 rounded font-medium text-xs border border-green-200">
+                                                            {actionLoading.id === item.id && actionLoading.type.includes('approve') ? <FontAwesomeIcon icon={faSpinner} spin /> : 'Approve'}
+                                                        </button>
+                                                        <button onClick={() => rejectProjectPayment(item.id, item.paymentType)} disabled={actionLoading.id === item.id} className="text-red-600 hover:bg-red-50 px-2 py-1 rounded font-medium text-xs border border-red-200">
+                                                            {actionLoading.id === item.id && actionLoading.type.includes('reject') ? <FontAwesomeIcon icon={faSpinner} spin /> : 'Reject'}
+                                                        </button>
                                                     </>
                                                 )}
                                             </div>

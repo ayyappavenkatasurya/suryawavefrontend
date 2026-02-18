@@ -4,6 +4,7 @@ import React, { createContext, useState, useEffect, useContext, useCallback } fr
 import api from './services';
 import { safeGetLocalStorage, safeSetLocalStorage, safeRemoveLocalStorage } from './utils/storage';
 import { unsubscribeCurrentToken, getCurrentToken } from './firebase.jsx';
+import { initSocket, disconnectSocket, getSocket } from './socket.js';
 
 const AuthContext = createContext();
 
@@ -18,17 +19,24 @@ export const AuthProvider = ({ children }) => {
       try {
         const { data } = await api.get('/api/auth/profile');
         setUser(data);
+        
+        // ✅ SMART: Connect Socket when user is confirmed
+        const socket = initSocket();
+        socket.auth = { token };
+        socket.connect();
+
       } catch (error) {
         console.error("Failed to fetch user profile", error);
-        // Only logout if explicit 401 Unauthorized (invalid token)
         if (error.response && error.response.status === 401) {
             safeRemoveLocalStorage('token');
             setToken(null);
             setUser(null);
+            disconnectSocket();
         }
       }
     } else {
         setUser(null);
+        disconnectSocket();
     }
     setLoading(false);
   }, [token]);
@@ -38,7 +46,7 @@ export const AuthProvider = ({ children }) => {
     fetchUser();
   }, [fetchUser]);
   
-  // Sync FCM Token for Notifications (Works on both domains independently)
+  // Sync FCM Token for Notifications
   useEffect(() => {
     const syncFcmToken = async () => {
       if ('Notification' in window && 'serviceWorker' in navigator && Notification.permission === 'granted') {
@@ -62,31 +70,36 @@ export const AuthProvider = ({ children }) => {
     safeSetLocalStorage('token', userToken);
     setToken(userToken);
     setUser(userData);
+    
+    // ✅ SMART: Connect Socket immediately on login
+    const socket = initSocket();
+    socket.auth = { token: userToken };
+    socket.connect();
+
   }, []);
 
   const logout = useCallback(async () => {
     const tokenToInvalidate = token;
-    // Attempt to unsubscribe FCM token to keep DB clean
     try {
       await unsubscribeCurrentToken(tokenToInvalidate);
     } catch (error) {
-        console.error('Failed to unsubscribe FCM token during logout, but proceeding with logout:', error);
+        console.error('Failed to unsubscribe FCM token during logout:', error);
     } finally {
       safeRemoveLocalStorage('token');
       setToken(null);
       setUser(null);
+      disconnectSocket(); // ✅ SMART: Disconnect socket
     }
   }, [token]);
   
-  // Handle 401 events triggered by services.js
+  // Handle 401 events
   useEffect(() => {
     const handleAuthError = () => {
-      console.warn('Authentication error detected (e.g., session expired). Logging out.');
+      console.warn('Authentication error detected. Logging out.');
       logout();
     };
 
     window.addEventListener('auth-error', handleAuthError);
-
     return () => {
       window.removeEventListener('auth-error', handleAuthError);
     };
@@ -134,7 +147,6 @@ export const PwaInstallProvider = ({ children }) => {
 
     const triggerInstall = useCallback(async () => {
         if (!installPrompt) return;
-        
         await installPrompt.prompt();
         setInstallPrompt(null);
     }, [installPrompt]);

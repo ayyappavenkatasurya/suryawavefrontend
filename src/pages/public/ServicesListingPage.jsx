@@ -1,6 +1,8 @@
+// frontend/src/pages/public/ServicesListingPage.jsx
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
@@ -11,31 +13,52 @@ import {
     faLayerGroup, 
     faRocket, 
     faGift,
-    faSync
+    faBolt
 } from '@fortawesome/free-solid-svg-icons';
 import Fuse from 'fuse.js';
 import api from '../../services';
+import { getSocket } from '../../socket.js';
 import { SEO, ServiceCard, ServiceCardSkeleton, PeopleAlsoAsk } from '../../components';
 
 export const ServicesPage = () => {
     const [searchQuery, setSearchQuery] = useState("");
-    const [activeFilter, setActiveFilter] = useState("all"); // all, free, standard, advanced
+    const [activeFilter, setActiveFilter] = useState("all"); 
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const filterRef = useRef(null);
     const { pathname } = useLocation();
+    const queryClient = useQueryClient();
   
-    // Fetch Services with Live Updates (Every 5 seconds)
-    const { data: services = [], isLoading: servicesLoading, isFetching } = useQuery({
+    // ✅ INTELLIGENT REAL-TIME: Listen for service updates
+    useEffect(() => {
+        const socket = getSocket();
+        
+        // Even if not logged in, we can connect (backend handles guest sockets if configured, 
+        // but typically we only connect auth users. For public pages, we might fall back to 
+        // long polling or just manual refresh if we want to save resources, 
+        // BUT for "Clever" app, we connect if possible or use a simple event source).
+        // If user is NOT logged in, getSocket() connects without token (guest).
+        if (!socket.connected) socket.connect();
+
+        const handleServiceUpdate = () => {
+            queryClient.invalidateQueries(['services']);
+        };
+
+        socket.on('service_updated', handleServiceUpdate);
+
+        return () => {
+            socket.off('service_updated', handleServiceUpdate);
+        };
+    }, [queryClient]);
+
+    const { data: services = [], isLoading: servicesLoading } = useQuery({
         queryKey: ['services'],
         queryFn: async () => {
             const { data } = await api.get('/api/services');
             return data;
         },
-        refetchInterval: 5000, // ✅ LIVE: Updates "Ordered Count" every 5 seconds
-        staleTime: 1000 * 60 * 5, 
+        staleTime: 1000 * 60 * 30, // 30 mins cache, broken only by socket event
     });
 
-    // Fetch FAQs
     const { data: faqs = [] } = useQuery({
         queryKey: ['faqs'],
         queryFn: async () => {
@@ -45,7 +68,6 @@ export const ServicesPage = () => {
         staleTime: 1000 * 60 * 30,
     });
 
-    // Handle Click Outside to close filter menu
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (filterRef.current && !filterRef.current.contains(event.target)) {
@@ -56,11 +78,9 @@ export const ServicesPage = () => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    // Memoize Filtered Results
     const filteredServices = useMemo(() => {
         let result = services;
 
-        // 1. Apply Search Query (Fuzzy)
         if (searchQuery.trim()) {
             const fuse = new Fuse(result, {
                 keys: ['title', 'description', 'category'],
@@ -69,20 +89,11 @@ export const ServicesPage = () => {
             result = fuse.search(searchQuery).map(res => res.item);
         }
 
-        // 2. Apply Category Filter
         if (activeFilter !== 'all') {
             result = result.filter(service => {
-                if (activeFilter === 'free') {
-                    return service.currentPrice === 0;
-                }
-                if (activeFilter === 'standard') {
-                    // Standard means readymade notes/files that are NOT free
-                    return service.serviceType === 'standard' && service.currentPrice > 0;
-                }
-                if (activeFilter === 'advanced') {
-                    // Custom projects
-                    return service.serviceType === 'custom';
-                }
+                if (activeFilter === 'free') return service.currentPrice === 0;
+                if (activeFilter === 'standard') return service.serviceType === 'standard' && service.currentPrice > 0;
+                if (activeFilter === 'advanced') return service.serviceType === 'custom';
                 return true;
             });
         }
@@ -90,7 +101,6 @@ export const ServicesPage = () => {
         return result;
     }, [services, searchQuery, activeFilter]);
   
-    // SEO Schemas
     const itemListSchema = {
         '@context': 'https://schema.org',
         '@type': 'ItemList',
@@ -144,24 +154,13 @@ export const ServicesPage = () => {
             <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8 min-h-screen">
                 <div className="flex justify-center items-center gap-3 mb-2">
                     <h1 className="text-3xl font-bold text-gray-900">Explore Services</h1>
-                    {/* Live Indicator if updating in background */}
-                    {isFetching && !servicesLoading && (
-                        <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full flex items-center gap-1 animate-pulse">
-                            <FontAwesomeIcon icon={faSync} spin /> Live
-                        </span>
-                    )}
                 </div>
                 
-                {/* Search & Filter Bar */}
                 <div className="max-w-2xl mx-auto mb-10 relative z-20" ref={filterRef}>
                     <div className="relative shadow-sm rounded-full bg-white border border-gray-300 hover:border-google-blue hover:shadow-md transition-all duration-300 flex items-center">
-                        
-                        {/* Search Icon */}
                         <div className="pl-5 text-gray-400 text-lg">
                             <FontAwesomeIcon icon={faSearch} />
                         </div>
-
-                        {/* Input Field */}
                         <input 
                             type="text" 
                             placeholder="Search for services..." 
@@ -169,25 +168,16 @@ export const ServicesPage = () => {
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="flex-grow py-3.5 px-4 bg-transparent border-none outline-none text-gray-700 placeholder-gray-500"
                         />
-
-                        {/* Right Side Actions */}
                         <div className="pr-2 flex items-center gap-2">
-                            
-                            {/* Clear Search Button */}
                             {searchQuery && (
                                 <button 
                                     onClick={() => setSearchQuery('')}
                                     className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
-                                    title="Clear search"
                                 >
                                     <FontAwesomeIcon icon={faTimes} />
                                 </button>
                             )}
-
-                            {/* Divider */}
                             <div className="h-6 w-px bg-gray-200 mx-1"></div>
-
-                            {/* Filter Button */}
                             <button 
                                 onClick={() => setIsFilterOpen(!isFilterOpen)}
                                 className={`p-2.5 rounded-full transition-all duration-200 flex items-center gap-2 text-sm font-medium ${
@@ -195,7 +185,6 @@ export const ServicesPage = () => {
                                     ? 'bg-blue-50 text-google-blue ring-2 ring-blue-100' 
                                     : 'text-gray-500 hover:bg-gray-100'
                                 }`}
-                                title="Filter services"
                             >
                                 <FontAwesomeIcon icon={faFilter} />
                                 <span className="hidden sm:inline-block">
@@ -204,7 +193,6 @@ export const ServicesPage = () => {
                             </button>
                         </div>
 
-                        {/* Dropdown Menu */}
                         <AnimatePresence>
                             {isFilterOpen && (
                                 <motion.div 
@@ -243,7 +231,6 @@ export const ServicesPage = () => {
                     </div>
                 </div>
 
-                {/* Services Grid */}
                 <motion.div 
                     layout
                     className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
@@ -263,12 +250,7 @@ export const ServicesPage = () => {
                                     initial={{ opacity: 0, scale: 0.9 }}
                                     animate={{ opacity: 1, scale: 1 }}
                                     exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
-                                    transition={{ 
-                                        type: "spring", 
-                                        stiffness: 300, 
-                                        damping: 25,
-                                        mass: 1 
-                                    }}
+                                    transition={{ type: "spring", stiffness: 300, damping: 25, mass: 1 }}
                                     className="h-full"
                                 >
                                     <ServiceCard service={service} />
@@ -285,9 +267,6 @@ export const ServicesPage = () => {
                                     <FontAwesomeIcon icon={faSearch} />
                                 </div>
                                 <h3 className="text-xl font-bold text-gray-800">No services found</h3>
-                                <p className="text-gray-500 mt-2">
-                                    We couldn't find any services matching your criteria.
-                                </p>
                                 <div className="mt-6 flex justify-center gap-3">
                                     {searchQuery && (
                                         <button 
@@ -295,14 +274,6 @@ export const ServicesPage = () => {
                                             className="px-5 py-2 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition-colors"
                                         >
                                             Clear Search Text
-                                        </button>
-                                    )}
-                                    {activeFilter !== 'all' && (
-                                        <button 
-                                            onClick={() => setActiveFilter('all')}
-                                            className="px-5 py-2 bg-blue-50 text-google-blue font-semibold rounded-lg hover:bg-blue-100 transition-colors"
-                                        >
-                                            Reset Filters
                                         </button>
                                     )}
                                 </div>

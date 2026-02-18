@@ -1,17 +1,18 @@
 // frontend/src/pages/admin/AdminDashboard.jsx
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'; // Added useQuery
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'; 
 import { SEO } from '../../components';
 import api from '../../services';
 import Fuse from 'fuse.js';
+import { getSocket } from '../../socket.js'; // ✅ IMPORT SOCKET
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
     faClipboardList, faUsers, faLayerGroup, 
-    faTools, faNewspaper, faQuestionCircle, faChartBar, faSearch, faSync
+    faTools, faNewspaper, faQuestionCircle, faChartBar, faSearch, faBolt
 } from '@fortawesome/free-solid-svg-icons';
 
 import { StatsView } from './views/StatsView';
@@ -28,16 +29,37 @@ export const AdminDashboardPage = () => {
     const { pathname } = useLocation();
     const queryClient = useQueryClient();
 
-    // Global loading state for mutations
     const [actionLoading, setActionLoading] = useState({ type: null, id: null });
 
-    // === REAL-TIME DATA FETCHING (Polling Stats) ===
-    // We fetch stats here to show the "pending count" or live revenue, passing data down or relying on cached query key in StatsView
+    // ✅ INTELLIGENT REAL-TIME: Removed polling (refetchInterval)
+    // The Socket will trigger the refetch only when needed.
     const { isFetching: isStatsFetching } = useQuery({
         queryKey: ['adminStats'],
         queryFn: async () => (await api.get('/api/admin/stats')).data,
-        refetchInterval: 5000, // Poll every 5s for new orders
+        staleTime: Infinity, // Wait for socket event
     });
+
+    // ✅ SOCKET LISTENER
+    useEffect(() => {
+        const socket = getSocket();
+        if (!socket.connected) socket.connect();
+
+        const handleAdminUpdate = (data) => {
+            console.log("⚡ Admin Update:", data);
+            toast.success(data.message || 'Dashboard Updated!', { icon: '🔔' });
+            
+            // Invalidate all relevant admin queries
+            queryClient.invalidateQueries(['adminStats']);
+            queryClient.invalidateQueries(['adminOrders']);
+            queryClient.invalidateQueries(['adminProjectRequests']);
+        };
+
+        socket.on('admin_update', handleAdminUpdate);
+
+        return () => {
+            socket.off('admin_update', handleAdminUpdate);
+        };
+    }, [queryClient]);
 
     // === MUTATIONS (With Optimistic Updates) ===
 
@@ -161,11 +183,9 @@ export const AdminDashboardPage = () => {
           <div className="flex flex-col md:flex-row justify-between items-center mb-6">
             <div className="flex items-center gap-3 mb-4 md:mb-0">
                 <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-                {isStatsFetching && (
-                    <span className="text-xs font-medium text-google-blue bg-blue-50 px-2 py-1 rounded-full flex items-center gap-1 animate-pulse">
-                        <FontAwesomeIcon icon={faSync} spin /> Live
-                    </span>
-                )}
+                <div className="flex items-center gap-2 text-xs text-google-blue font-medium bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
+                    <FontAwesomeIcon icon={faBolt} /> Real-Time
+                </div>
             </div>
             {view !== 'stats' && (
                 <div className="relative w-full md:w-64">
