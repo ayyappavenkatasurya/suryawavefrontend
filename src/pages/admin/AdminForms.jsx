@@ -111,6 +111,36 @@ export const AddArticleForm = ({ articleToEdit, onArticleAdded, onArticleUpdated
     );
 };
 
+// ========== Sortable Item Component (Extracted to fix Focus Loss) ==========
+// This must be OUTSIDE the main component to preserve state during re-renders
+const SortableItem = ({ index, type, children, onRemove, isSelected, onMove }) => {
+    return (
+        <div className={`
+            flex items-start bg-white border rounded-lg shadow-sm mb-3 overflow-hidden transition-all
+            ${isSelected ? 'ring-2 ring-google-blue border-google-blue bg-blue-50/50' : 'border-gray-200'}
+        `}>
+            <button 
+                type="button"
+                onClick={() => onMove(index, type)}
+                className={`
+                    w-12 shrink-0 self-stretch flex items-center justify-center border-r
+                    hover:bg-gray-100 transition-colors cursor-pointer
+                    ${isSelected ? 'bg-blue-100 text-google-blue' : 'bg-gray-50 text-gray-400'}
+                `}
+                title={isSelected ? "Click destination to Move here" : "Click to select for Move"}
+            >
+                <FontAwesomeIcon icon={isSelected ? faCheckCircle : faRetweet} />
+            </button>
+            <div className="p-3 flex-grow relative">
+                 <button type="button" onClick={onRemove} className="absolute top-2 right-2 text-red-400 hover:text-red-600 transition-colors z-10">
+                    <FontAwesomeIcon icon={faTrash} />
+                 </button>
+                {children}
+            </div>
+        </div>
+    );
+};
+
 // ========== Add/Edit Service Form Component ==========
 export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated, onCancelEdit, onFormChange }) => {
     const [title, setTitle] = useState('');
@@ -125,7 +155,7 @@ export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated
     const [pageContent, setPageContent] = useState([]);
     const [srsForm, setSrsForm] = useState([{ uuid: generateId(), blockType: 'input', label: 'Describe your requirements', inputType: 'textarea', required: true }]);
     
-    // SWAP STATE
+    // MOVE/REORDER STATE
     const [swapSourceIndex, setSwapSourceIndex] = useState(null);
     const [swapListType, setSwapListType] = useState(null); // 'page' or 'srs'
 
@@ -189,7 +219,7 @@ export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated
         if (type === 'heading' || type === 'subheading' || type === 'paragraph') newBlock.value = ''; 
         if (type === 'image') { newBlock.url = ''; newBlock.alt = ''; } 
         if (type === 'file') { newBlock.url = ''; newBlock.value = ''; newBlock.iconUrl = ''; } 
-        if (type === 'video') { newBlock.url = ''; } // New Video Block
+        if (type === 'video') { newBlock.url = ''; } 
         setPageContent([...pageContent, newBlock]); 
     };
 
@@ -217,7 +247,7 @@ export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated
         } else if (type === 'file') {
             newBlock.url = ''; newBlock.content = ''; newBlock.iconUrl = '';
         } else if (type === 'video') {
-            newBlock.url = ''; // New Video Block
+            newBlock.url = '';
         }
         setSrsForm([...srsForm, newBlock]);
     };
@@ -234,21 +264,31 @@ export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated
         }
     };
 
-    // --- SWAP LOGIC (No Toasts) ---
-    const handleSwapClick = (index, type) => {
+    // --- NEW: MOVE / REORDER LOGIC (No Toasts) ---
+    const handleMoveClick = (index, type) => {
+        // 1. First Selection (Source)
         if (swapSourceIndex === null) {
             setSwapSourceIndex(index);
             setSwapListType(type);
         } 
+        // 2. Deselect if clicking same item
         else if (swapSourceIndex === index && swapListType === type) {
             setSwapSourceIndex(null);
             setSwapListType(null);
         } 
+        // 3. Move Logic
         else if (swapListType === type) {
             const list = type === 'page' ? [...pageContent] : [...srsForm];
-            const temp = list[swapSourceIndex];
-            list[swapSourceIndex] = list[index];
-            list[index] = temp;
+            const sourceIndex = swapSourceIndex;
+            
+            // Extract the item to move
+            const [itemToMove] = list.splice(sourceIndex, 1);
+            
+            // Calculate Insertion Index
+            const insertionIndex = sourceIndex < index ? index - 1 : index;
+
+            // Insert item at the specific position
+            list.splice(insertionIndex, 0, itemToMove);
 
             if (type === 'page') setPageContent(list);
             else setSrsForm(list);
@@ -256,6 +296,7 @@ export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated
             setSwapSourceIndex(null);
             setSwapListType(null);
         } 
+        // 4. Clicking cross-type (reset)
         else {
             setSwapSourceIndex(index);
             setSwapListType(type);
@@ -280,35 +321,6 @@ export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated
         else { const { data } = await api.post('/api/services', serviceData); toast.success('Service added!'); onServiceAdded(data); resetForm(); }
       } catch (error) { toast.error(error.response?.data?.message || 'Operation failed.') } 
       finally { setLoading(false); }
-    };
-
-    // Reusable Item Wrapper
-    const SortableItem = ({ index, type, children, onRemove, isSelected }) => {
-        return (
-            <div className={`
-                flex items-start bg-white border rounded-lg shadow-sm mb-3 overflow-hidden transition-all
-                ${isSelected ? 'ring-2 ring-google-blue border-google-blue bg-blue-50/30' : 'border-gray-200'}
-            `}>
-                <button 
-                    type="button"
-                    onClick={() => handleSwapClick(index, type)}
-                    className={`
-                        w-12 shrink-0 self-stretch flex items-center justify-center border-r
-                        hover:bg-gray-100 transition-colors cursor-pointer
-                        ${isSelected ? 'bg-blue-100 text-google-blue' : 'bg-gray-50 text-gray-400'}
-                    `}
-                    title="Click to select/swap"
-                >
-                    <FontAwesomeIcon icon={isSelected ? faCheckCircle : faRetweet} />
-                </button>
-                <div className="p-3 flex-grow relative">
-                     <button type="button" onClick={onRemove} className="absolute top-2 right-2 text-red-400 hover:text-red-600 transition-colors z-10">
-                        <FontAwesomeIcon icon={faTrash} />
-                     </button>
-                    {children}
-                </div>
-            </div>
-        );
     };
 
     return (
@@ -347,7 +359,7 @@ export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated
                     <h4 className="font-bold text-gray-700 text-sm uppercase tracking-wide mb-2 flex justify-between items-center">
                         Page Content Builder
                         <span className="text-[10px] font-normal text-google-blue bg-blue-50 border border-blue-100 px-2 py-1 rounded">
-                            <FontAwesomeIcon icon={faRetweet} className="mr-1"/> Click left icon to Swap
+                            <FontAwesomeIcon icon={faRetweet} className="mr-1"/> Click left icon to Move Items
                         </span>
                     </h4>
                     
@@ -359,6 +371,7 @@ export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated
                                 type="page"
                                 isSelected={swapListType === 'page' && swapSourceIndex === index}
                                 onRemove={() => removePageContentBlock(index)}
+                                onMove={handleMoveClick}
                             >
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">{block.type}</label>
                                 
@@ -446,7 +459,7 @@ export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated
                       <h4 className="font-bold text-gray-700 text-sm uppercase tracking-wide mb-2 flex justify-between items-center">
                           Project Page Builder
                           <span className="text-[10px] font-normal text-google-blue bg-blue-50 border border-blue-100 px-2 py-1 rounded">
-                            <FontAwesomeIcon icon={faRetweet} className="mr-1"/> Click left icon to Swap
+                            <FontAwesomeIcon icon={faRetweet} className="mr-1"/> Click left icon to Move Items
                           </span>
                       </h4>
                       <p className="text-xs text-gray-500 mb-3">Build your requirement form. Mix input fields for user data with informational content.</p>
@@ -459,6 +472,7 @@ export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated
                                 type="srs"
                                 isSelected={swapListType === 'srs' && swapSourceIndex === index}
                                 onRemove={() => removeSrsBlock(index)}
+                                onMove={handleMoveClick}
                               >
                                   <div className="flex items-center gap-2 mb-2">
                                       <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${field.blockType === 'input' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
