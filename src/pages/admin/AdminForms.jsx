@@ -4,16 +4,15 @@ import React, { useState, useEffect, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import toast from 'react-hot-toast';
-import { Reorder, useDragControls } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
     faEdit, faPlus, faSpinner, faHeading, faParagraph, 
     faImage, faFileAlt, faWallet, faKeyboard, faFileLines,
-    faGripVertical, faTrash
+    faTrash, faRetweet, faCheckCircle
 } from '@fortawesome/free-solid-svg-icons';
 import api from '../../services';
 
-// Helper to generate unique IDs for drag-and-drop keys
+// Helper to generate unique IDs
 const generateId = () => `id-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
 // ========== Article Preview Component ==========
@@ -112,7 +111,7 @@ export const AddArticleForm = ({ articleToEdit, onArticleAdded, onArticleUpdated
     );
 };
 
-// ========== Add/Edit Service Form Component (Responsive & Drag-n-Drop) ==========
+// ========== Add/Edit Service Form Component (Click-to-Swap Version) ==========
 export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated, onCancelEdit, onFormChange }) => {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
@@ -122,10 +121,14 @@ export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated
     const [contentUrls, setContentUrls] = useState([{ name: '', url: '' }]);
     const [serviceType, setServiceType] = useState('standard');
     
-    // Lists with internal IDs for Drag and Drop
+    // Lists with internal IDs
     const [pageContent, setPageContent] = useState([]);
     const [srsForm, setSrsForm] = useState([{ uuid: generateId(), blockType: 'input', label: 'Describe your requirements', inputType: 'textarea', required: true }]);
     
+    // SWAP STATE
+    const [swapSourceIndex, setSwapSourceIndex] = useState(null);
+    const [swapListType, setSwapListType] = useState(null); // 'page' or 'srs'
+
     const [loading, setLoading] = useState(false);
   
     const resetForm = useCallback(() => { 
@@ -133,6 +136,7 @@ export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated
         setImageUrl(''); setContentUrls([{ name: '', url: '' }]); 
         setPageContent([]); setServiceType('standard'); 
         setSrsForm([{ uuid: generateId(), blockType: 'input', label: 'Describe your requirements', inputType: 'textarea', required: true }]); 
+        setSwapSourceIndex(null); setSwapListType(null);
     }, []);
     
     useEffect(() => { 
@@ -156,7 +160,6 @@ export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated
             setImageUrl(serviceToEdit.imageUrl); 
             setContentUrls(serviceToEdit.contentUrls && serviceToEdit.contentUrls.length > 0 ? serviceToEdit.contentUrls : [{ name: '', url: '' }]); 
             
-            // Add UUIDs to existing content for Reorder
             setPageContent((serviceToEdit.pageContent || []).map(item => ({...item, uuid: item.uuid || generateId()}))); 
             
             setServiceType(serviceToEdit.serviceType || 'standard');
@@ -176,7 +179,7 @@ export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated
         } 
     }, [serviceToEdit, resetForm]);
 
-    // --- Page Content Builder (Standard Service) ---
+    // --- Page Content Helpers ---
     const handlePaidContentChange = (index, event) => { const values = [...contentUrls]; values[index][event.target.name] = event.target.value; setContentUrls(values); };
     const addPaidContentField = () => { setContentUrls([...contentUrls, { name: '', url: '' }]); };
     const removePaidContentField = index => { setContentUrls(prevUrls => prevUrls.filter((_, i) => i !== index)); };
@@ -193,11 +196,16 @@ export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated
         setPageContent(prev => prev.map(item => item.uuid === uuid ? { ...item, [field]: value } : item));
     };
 
-    const removePageContentBlock = (uuid) => { 
-        setPageContent(prev => prev.filter(item => item.uuid !== uuid)); 
+    const removePageContentBlock = (index) => { 
+        setPageContent(prev => prev.filter((_, i) => i !== index)); 
+        // Reset swap if the deleted item was selected
+        if (swapListType === 'page' && swapSourceIndex === index) {
+            setSwapSourceIndex(null);
+            setSwapListType(null);
+        }
     };
 
-    // --- Advanced Requirement Builder (Hybrid) ---
+    // --- Advanced Requirement Helpers ---
     const addSrsBlock = (type) => {
         let newBlock = { blockType: type, uuid: generateId() };
         if (type === 'input') {
@@ -216,8 +224,46 @@ export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated
         setSrsForm(prev => prev.map(item => item.uuid === uuid ? { ...item, [field]: value } : item));
     };
 
-    const removeSrsBlock = (uuid) => {
-        setSrsForm(prev => prev.filter(item => item.uuid !== uuid));
+    const removeSrsBlock = (index) => {
+        setSrsForm(prev => prev.filter((_, i) => i !== index));
+        if (swapListType === 'srs' && swapSourceIndex === index) {
+            setSwapSourceIndex(null);
+            setSwapListType(null);
+        }
+    };
+
+    // --- SWAP LOGIC (No Toasts) ---
+    const handleSwapClick = (index, type) => {
+        // If no item is selected, select this one
+        if (swapSourceIndex === null) {
+            setSwapSourceIndex(index);
+            setSwapListType(type);
+        } 
+        // If clicking the SAME item, deselect it
+        else if (swapSourceIndex === index && swapListType === type) {
+            setSwapSourceIndex(null);
+            setSwapListType(null);
+        } 
+        // If clicking a different item in the SAME list, swap them
+        else if (swapListType === type) {
+            const list = type === 'page' ? [...pageContent] : [...srsForm];
+            
+            // Perform Swap
+            const temp = list[swapSourceIndex];
+            list[swapSourceIndex] = list[index];
+            list[index] = temp;
+
+            if (type === 'page') setPageContent(list);
+            else setSrsForm(list);
+
+            setSwapSourceIndex(null);
+            setSwapListType(null);
+        } 
+        // If clicking item in different list (edge case), change selection
+        else {
+            setSwapSourceIndex(index);
+            setSwapListType(type);
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -225,7 +271,6 @@ export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated
       setLoading(true);
       const autoCategory = serviceType === 'standard' ? 'Standard' : 'Advanced';
       
-      // Clean UUIDs before sending to backend if necessary (MongoDB usually ignores extra fields unless strict, but clean is better)
       const cleanPageContent = pageContent.map(({ uuid, ...rest }) => rest);
       const cleanSrsForm = srsForm.map(({ uuid, ...rest }) => rest);
 
@@ -241,36 +286,32 @@ export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated
       finally { setLoading(false); }
     };
 
-    // Drag Controls Helper Component
-    const DragHandle = ({ dragControls }) => (
-        <div onPointerDown={(e) => dragControls.start(e)} className="cursor-grab active:cursor-grabbing p-2 text-gray-400 hover:text-gray-600">
-            <FontAwesomeIcon icon={faGripVertical} />
-        </div>
-    );
-
-    // Reorder Item Wrapper
-    const SortableItem = ({ item, children, onRemove }) => {
-        const dragControls = useDragControls();
+    // Reusable Item Wrapper for UI
+    const SortableItem = ({ index, type, children, onRemove, isSelected }) => {
         return (
-            <Reorder.Item
-                value={item}
-                id={item.uuid}
-                dragListener={false}
-                dragControls={dragControls}
-                className="bg-white border rounded-lg shadow-sm mb-3 overflow-hidden"
-            >
-                <div className="flex items-start">
-                    <div className="bg-gray-50 border-r h-full min-h-[50px] flex items-center justify-center w-10 shrink-0 self-stretch">
-                        <DragHandle dragControls={dragControls} />
-                    </div>
-                    <div className="p-3 flex-grow relative">
-                         <button type="button" onClick={onRemove} className="absolute top-2 right-2 text-red-400 hover:text-red-600 transition-colors">
-                            <FontAwesomeIcon icon={faTrash} />
-                         </button>
-                        {children}
-                    </div>
+            <div className={`
+                flex items-start bg-white border rounded-lg shadow-sm mb-3 overflow-hidden transition-all
+                ${isSelected ? 'ring-2 ring-google-blue border-google-blue bg-blue-50/30' : 'border-gray-200'}
+            `}>
+                <button 
+                    type="button"
+                    onClick={() => handleSwapClick(index, type)}
+                    className={`
+                        w-12 shrink-0 self-stretch flex items-center justify-center border-r
+                        hover:bg-gray-100 transition-colors cursor-pointer
+                        ${isSelected ? 'bg-blue-100 text-google-blue' : 'bg-gray-50 text-gray-400'}
+                    `}
+                    title="Click to select/swap"
+                >
+                    <FontAwesomeIcon icon={isSelected ? faCheckCircle : faRetweet} />
+                </button>
+                <div className="p-3 flex-grow relative">
+                     <button type="button" onClick={onRemove} className="absolute top-2 right-2 text-red-400 hover:text-red-600 transition-colors z-10">
+                        <FontAwesomeIcon icon={faTrash} />
+                     </button>
+                    {children}
                 </div>
-            </Reorder.Item>
+            </div>
         );
     };
 
@@ -309,49 +350,55 @@ export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated
                 <div>
                     <h4 className="font-bold text-gray-700 text-sm uppercase tracking-wide mb-2 flex justify-between items-center">
                         Page Content Builder
-                        <span className="text-xs font-normal text-gray-500 normal-case bg-gray-100 px-2 py-1 rounded">Drag handle to reorder</span>
+                        <span className="text-[10px] font-normal text-google-blue bg-blue-50 border border-blue-100 px-2 py-1 rounded">
+                            <FontAwesomeIcon icon={faRetweet} className="mr-1"/> Click left icon to Swap
+                        </span>
                     </h4>
                     
                     <div className="bg-gray-100 p-3 rounded-lg border border-gray-200 min-h-[100px]">
-                        <Reorder.Group axis="y" values={pageContent} onReorder={setPageContent}>
-                            {pageContent.map((block) => (
-                                <SortableItem key={block.uuid} item={block} onRemove={() => removePageContentBlock(block.uuid)}>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">{block.type}</label>
-                                    
-                                    {(block.type === 'heading' || block.type === 'subheading') && (
-                                        <input type="text" value={block.value} onChange={e => handlePageContentChange(block.uuid, 'value', e.target.value)} className="w-full p-2 border rounded text-sm" placeholder="Heading Text" />
-                                    )}
-                                    
-                                    {block.type === 'paragraph' && (
-                                        <>
-                                            <textarea value={block.value} onChange={e => handlePageContentChange(block.uuid, 'value', e.target.value)} className="w-full p-2 border rounded h-20 text-sm" placeholder="Paragraph Content" />
-                                            <p className="text-[10px] text-gray-400 mt-1">Markdown supported (**bold**, *italic*)</p>
-                                        </>
-                                    )}
-                                    
-                                    {block.type === 'image' && (
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                            <input type="url" placeholder="Image URL" value={block.url} onChange={e => handlePageContentChange(block.uuid, 'url', e.target.value)} className="w-full p-2 border rounded text-sm" />
-                                            <input type="text" placeholder="Alt Text" value={block.alt} onChange={e => handlePageContentChange(block.uuid, 'alt', e.target.value)} className="w-full p-2 border rounded text-sm" />
-                                        </div>
-                                    )}
-                                    
-                                    {block.type === 'file' && (
-                                        <div className="space-y-2">
-                                            <input type="text" placeholder="Display Name (e.g. 'Download PDF')" value={block.value} onChange={e => handlePageContentChange(block.uuid, 'value', e.target.value)} className="w-full p-2 border rounded text-sm" />
-                                            <input type="url" placeholder="File URL" value={block.url} onChange={e => handlePageContentChange(block.uuid, 'url', e.target.value)} className="w-full p-2 border rounded text-sm" />
-                                            <input type="url" placeholder="Icon URL (Optional)" value={block.iconUrl} onChange={e => handlePageContentChange(block.uuid, 'iconUrl', e.target.value)} className="w-full p-2 border rounded text-sm" />
-                                        </div>
-                                    )}
-                                    
-                                    {block.type === 'purchaseButton' && (
-                                        <div className="bg-yellow-50 text-yellow-800 text-sm p-2 rounded text-center border border-yellow-200 font-medium">
-                                            Purchase Button (₹{price || '...'})
-                                        </div>
-                                    )}
-                                </SortableItem>
-                            ))}
-                        </Reorder.Group>
+                        {pageContent.map((block, index) => (
+                            <SortableItem 
+                                key={block.uuid} 
+                                index={index}
+                                type="page"
+                                isSelected={swapListType === 'page' && swapSourceIndex === index}
+                                onRemove={() => removePageContentBlock(index)}
+                            >
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">{block.type}</label>
+                                
+                                {(block.type === 'heading' || block.type === 'subheading') && (
+                                    <input type="text" value={block.value} onChange={e => handlePageContentChange(block.uuid, 'value', e.target.value)} className="w-full p-2 border rounded text-sm" placeholder="Heading Text" />
+                                )}
+                                
+                                {block.type === 'paragraph' && (
+                                    <>
+                                        <textarea value={block.value} onChange={e => handlePageContentChange(block.uuid, 'value', e.target.value)} className="w-full p-2 border rounded h-20 text-sm" placeholder="Paragraph Content" />
+                                        <p className="text-[10px] text-gray-400 mt-1">Markdown supported (**bold**, *italic*)</p>
+                                    </>
+                                )}
+                                
+                                {block.type === 'image' && (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                        <input type="url" placeholder="Image URL" value={block.url} onChange={e => handlePageContentChange(block.uuid, 'url', e.target.value)} className="w-full p-2 border rounded text-sm" />
+                                        <input type="text" placeholder="Alt Text" value={block.alt} onChange={e => handlePageContentChange(block.uuid, 'alt', e.target.value)} className="w-full p-2 border rounded text-sm" />
+                                    </div>
+                                )}
+                                
+                                {block.type === 'file' && (
+                                    <div className="space-y-2">
+                                        <input type="text" placeholder="Display Name (e.g. 'Download PDF')" value={block.value} onChange={e => handlePageContentChange(block.uuid, 'value', e.target.value)} className="w-full p-2 border rounded text-sm" />
+                                        <input type="url" placeholder="File URL" value={block.url} onChange={e => handlePageContentChange(block.uuid, 'url', e.target.value)} className="w-full p-2 border rounded text-sm" />
+                                        <input type="url" placeholder="Icon URL (Optional)" value={block.iconUrl} onChange={e => handlePageContentChange(block.uuid, 'iconUrl', e.target.value)} className="w-full p-2 border rounded text-sm" />
+                                    </div>
+                                )}
+                                
+                                {block.type === 'purchaseButton' && (
+                                    <div className="bg-yellow-50 text-yellow-800 text-sm p-2 rounded text-center border border-yellow-200 font-medium">
+                                        Purchase Button (₹{price || '...'})
+                                    </div>
+                                )}
+                            </SortableItem>
+                        ))}
 
                         {/* Add Buttons Grid */}
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-3">
@@ -394,66 +441,72 @@ export const AddServiceForm = ({ serviceToEdit, onServiceAdded, onServiceUpdated
                   <div>
                       <h4 className="font-bold text-gray-700 text-sm uppercase tracking-wide mb-2 flex justify-between items-center">
                           Project Page Builder
-                          <span className="text-xs font-normal text-gray-500 normal-case bg-gray-100 px-2 py-1 rounded">Drag handle to reorder</span>
+                          <span className="text-[10px] font-normal text-google-blue bg-blue-50 border border-blue-100 px-2 py-1 rounded">
+                            <FontAwesomeIcon icon={faRetweet} className="mr-1"/> Click left icon to Swap
+                          </span>
                       </h4>
                       <p className="text-xs text-gray-500 mb-3">Build your requirement form. Mix input fields for user data with informational content.</p>
                       
                       <div className="bg-gray-100 p-3 rounded-lg border border-gray-200 min-h-[100px]">
-                          <Reorder.Group axis="y" values={srsForm} onReorder={setSrsForm}>
-                              {srsForm.map((field) => (
-                                  <SortableItem key={field.uuid} item={field} onRemove={() => removeSrsBlock(field.uuid)}>
-                                      <div className="flex items-center gap-2 mb-2">
-                                          <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${field.blockType === 'input' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
-                                              {field.blockType}
-                                          </span>
+                          {srsForm.map((field, index) => (
+                              <SortableItem 
+                                key={field.uuid} 
+                                index={index} 
+                                type="srs"
+                                isSelected={swapListType === 'srs' && swapSourceIndex === index}
+                                onRemove={() => removeSrsBlock(index)}
+                              >
+                                  <div className="flex items-center gap-2 mb-2">
+                                      <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${field.blockType === 'input' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
+                                          {field.blockType}
+                                      </span>
+                                  </div>
+
+                                  {/* INPUT BLOCK */}
+                                  {field.blockType === 'input' && (
+                                      <div className="space-y-2">
+                                          <input type="text" placeholder="Field Label (e.g. 'Project Title')" value={field.label} onChange={e => handleSrsFormChange(field.uuid, 'label', e.target.value)} className="w-full p-2 border rounded text-sm" />
+                                          <div className="flex flex-col sm:flex-row gap-2">
+                                              <select value={field.inputType} onChange={e => handleSrsFormChange(field.uuid, 'inputType', e.target.value)} className="w-full sm:w-1/2 p-2 border rounded bg-white text-sm">
+                                                  <option value="text">Single Line Text</option>
+                                                  <option value="textarea">Multi-line Text</option>
+                                                  <option value="file">User File Upload (Link)</option>
+                                              </select>
+                                              <label className="flex items-center gap-2 text-xs cursor-pointer border p-2 rounded w-full sm:w-1/2 bg-gray-50 hover:bg-gray-100">
+                                                  <input type="checkbox" checked={field.required} onChange={e => handleSrsFormChange(field.uuid, 'required', e.target.checked)} className="rounded text-google-blue focus:ring-google-blue" /> 
+                                                  Required Field
+                                              </label>
+                                          </div>
                                       </div>
+                                  )}
 
-                                      {/* INPUT BLOCK */}
-                                      {field.blockType === 'input' && (
-                                          <div className="space-y-2">
-                                              <input type="text" placeholder="Field Label (e.g. 'Project Title')" value={field.label} onChange={e => handleSrsFormChange(field.uuid, 'label', e.target.value)} className="w-full p-2 border rounded text-sm" />
-                                              <div className="flex flex-col sm:flex-row gap-2">
-                                                  <select value={field.inputType} onChange={e => handleSrsFormChange(field.uuid, 'inputType', e.target.value)} className="w-full sm:w-1/2 p-2 border rounded bg-white text-sm">
-                                                      <option value="text">Single Line Text</option>
-                                                      <option value="textarea">Multi-line Text</option>
-                                                      <option value="file">User File Upload (Link)</option>
-                                                  </select>
-                                                  <label className="flex items-center gap-2 text-xs cursor-pointer border p-2 rounded w-full sm:w-1/2 bg-gray-50 hover:bg-gray-100">
-                                                      <input type="checkbox" checked={field.required} onChange={e => handleSrsFormChange(field.uuid, 'required', e.target.checked)} className="rounded text-google-blue focus:ring-google-blue" /> 
-                                                      Required Field
-                                                  </label>
-                                              </div>
-                                          </div>
-                                      )}
+                                  {/* CONTENT BLOCKS */}
+                                  {(field.blockType === 'heading' || field.blockType === 'subheading') && (
+                                      <input type="text" placeholder="Heading Text" value={field.content} onChange={e => handleSrsFormChange(field.uuid, 'content', e.target.value)} className="w-full p-2 border rounded text-sm" />
+                                  )}
 
-                                      {/* CONTENT BLOCKS */}
-                                      {(field.blockType === 'heading' || field.blockType === 'subheading') && (
-                                          <input type="text" placeholder="Heading Text" value={field.content} onChange={e => handleSrsFormChange(field.uuid, 'content', e.target.value)} className="w-full p-2 border rounded text-sm" />
-                                      )}
+                                  {field.blockType === 'paragraph' && (
+                                      <textarea placeholder="Instructional Text (Markdown supported)" value={field.content} onChange={e => handleSrsFormChange(field.uuid, 'content', e.target.value)} className="w-full p-2 border rounded h-20 text-sm" />
+                                  )}
 
-                                      {field.blockType === 'paragraph' && (
-                                          <textarea placeholder="Instructional Text (Markdown supported)" value={field.content} onChange={e => handleSrsFormChange(field.uuid, 'content', e.target.value)} className="w-full p-2 border rounded h-20 text-sm" />
-                                      )}
+                                  {field.blockType === 'image' && (
+                                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                          <input type="url" placeholder="Image URL" value={field.url} onChange={e => handleSrsFormChange(field.uuid, 'url', e.target.value)} className="w-full p-2 border rounded text-sm" />
+                                          <input type="text" placeholder="Alt Text" value={field.alt} onChange={e => handleSrsFormChange(field.uuid, 'alt', e.target.value)} className="w-full p-2 border rounded text-sm" />
+                                      </div>
+                                  )}
 
-                                      {field.blockType === 'image' && (
+                                  {field.blockType === 'file' && (
+                                      <div className="space-y-2">
+                                          <input type="text" placeholder="Display Text (e.g. 'Download Template')" value={field.content} onChange={e => handleSrsFormChange(field.uuid, 'content', e.target.value)} className="w-full p-2 border rounded text-sm" />
                                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                              <input type="url" placeholder="Image URL" value={field.url} onChange={e => handleSrsFormChange(field.uuid, 'url', e.target.value)} className="w-full p-2 border rounded text-sm" />
-                                              <input type="text" placeholder="Alt Text" value={field.alt} onChange={e => handleSrsFormChange(field.uuid, 'alt', e.target.value)} className="w-full p-2 border rounded text-sm" />
+                                              <input type="url" placeholder="File URL (Download Link)" value={field.url} onChange={e => handleSrsFormChange(field.uuid, 'url', e.target.value)} className="w-full p-2 border rounded text-sm" />
+                                              <input type="url" placeholder="Icon URL (Optional)" value={field.iconUrl} onChange={e => handleSrsFormChange(field.uuid, 'iconUrl', e.target.value)} className="w-full p-2 border rounded text-sm" />
                                           </div>
-                                      )}
-
-                                      {field.blockType === 'file' && (
-                                          <div className="space-y-2">
-                                              <input type="text" placeholder="Display Text (e.g. 'Download Template')" value={field.content} onChange={e => handleSrsFormChange(field.uuid, 'content', e.target.value)} className="w-full p-2 border rounded text-sm" />
-                                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                                  <input type="url" placeholder="File URL (Download Link)" value={field.url} onChange={e => handleSrsFormChange(field.uuid, 'url', e.target.value)} className="w-full p-2 border rounded text-sm" />
-                                                  <input type="url" placeholder="Icon URL (Optional)" value={field.iconUrl} onChange={e => handleSrsFormChange(field.uuid, 'iconUrl', e.target.value)} className="w-full p-2 border rounded text-sm" />
-                                              </div>
-                                          </div>
-                                      )}
-                                  </SortableItem>
-                              ))}
-                          </Reorder.Group>
+                                      </div>
+                                  )}
+                              </SortableItem>
+                          ))}
 
                           <div className="flex flex-wrap gap-2 mt-3">
                               <button type="button" onClick={() => addSrsBlock('input')} className="text-xs bg-blue-50 text-blue-700 px-3 py-2 rounded-lg flex items-center gap-1 hover:bg-blue-100 border border-blue-200 font-semibold transition-colors"><FontAwesomeIcon icon={faKeyboard}/> Input Field</button>
