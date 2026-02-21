@@ -7,7 +7,7 @@ import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { SEO } from '../../components';
 import api from '../../services';
 import Fuse from 'fuse.js';
-import { getSocket } from '../../socket.js'; // ✅ IMPORT SOCKET
+import { getSocket } from '../../socket.js'; 
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
@@ -31,15 +31,14 @@ export const AdminDashboardPage = () => {
 
     const [actionLoading, setActionLoading] = useState({ type: null, id: null });
 
-    // ✅ INTELLIGENT REAL-TIME: Removed polling (refetchInterval)
-    // The Socket will trigger the refetch only when needed.
+    // ✅ FIX: Proper cache management with sockets
     const { isFetching: isStatsFetching } = useQuery({
         queryKey: ['adminStats'],
         queryFn: async () => (await api.get('/api/admin/stats')).data,
-        staleTime: Infinity, // Wait for socket event
+        staleTime: Infinity, 
     });
 
-    // ✅ SOCKET LISTENER
+    // ✅ FIX: Strict socket listener management
     useEffect(() => {
         const socket = getSocket();
         if (!socket.connected) socket.connect();
@@ -48,10 +47,9 @@ export const AdminDashboardPage = () => {
             console.log("⚡ Admin Update:", data);
             toast.success(data.message || 'Dashboard Updated!', { icon: '🔔' });
             
-            // Invalidate all relevant admin queries
-            queryClient.invalidateQueries(['adminStats']);
-            queryClient.invalidateQueries(['adminOrders']);
-            queryClient.invalidateQueries(['adminProjectRequests']);
+            queryClient.invalidateQueries({ queryKey: ['adminStats'] });
+            queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
+            queryClient.invalidateQueries({ queryKey: ['adminProjectRequests'] });
         };
 
         socket.on('admin_update', handleAdminUpdate);
@@ -61,19 +59,18 @@ export const AdminDashboardPage = () => {
         };
     }, [queryClient]);
 
-    // === MUTATIONS (With Optimistic Updates) ===
+    // === MUTATIONS ===
 
-    // Order Approval
     const approveOrderMutation = useMutation({
         mutationFn: (id) => api.put(`/api/admin/orders/${id}/approve`),
         onMutate: async (id) => {
             setActionLoading({ type: 'approve', id });
-            await queryClient.cancelQueries(['adminOrders']);
+            await queryClient.cancelQueries({ queryKey: ['adminOrders'] });
         },
         onSettled: () => {
             setActionLoading({ type: null, id: null });
-            queryClient.invalidateQueries(['adminOrders']);
-            queryClient.invalidateQueries(['adminStats']);
+            queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
+            queryClient.invalidateQueries({ queryKey: ['adminStats'] });
         },
         onSuccess: () => toast.success('Order approved!')
     });
@@ -82,22 +79,21 @@ export const AdminDashboardPage = () => {
         mutationFn: (id) => api.put(`/api/admin/orders/${id}/reject`),
         onMutate: async (id) => {
             setActionLoading({ type: 'reject', id });
-            await queryClient.cancelQueries(['adminOrders']);
+            await queryClient.cancelQueries({ queryKey: ['adminOrders'] });
         },
         onSettled: () => {
             setActionLoading({ type: null, id: null });
-            queryClient.invalidateQueries(['adminOrders']);
-            queryClient.invalidateQueries(['adminStats']);
+            queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
+            queryClient.invalidateQueries({ queryKey: ['adminStats'] });
         },
         onSuccess: () => toast.success('Order rejected!')
     });
 
-    // Service Management
     const deleteServiceMutation = useMutation({
         mutationFn: (id) => api.delete(`/api/services/${id}`),
         onSettled: () => {
             setActionLoading({ type: null, id: null });
-            queryClient.invalidateQueries(['services']);
+            queryClient.invalidateQueries({ queryKey: ['services'] });
         },
         onSuccess: () => toast.success('Service deleted!')
     });
@@ -113,7 +109,7 @@ export const AdminDashboardPage = () => {
             try {
                 await api.put(`/api/admin/project-requests/${request._id}/approve-request`);
                 toast.success('Request Approved!');
-                queryClient.invalidateQueries(['adminProjectRequests']);
+                queryClient.invalidateQueries({ queryKey: ['adminProjectRequests'] });
             } catch(e) { toast.error("Failed to approve request."); } 
             finally { setActionLoading({ type: null, id: null }); }
         }
@@ -125,7 +121,7 @@ export const AdminDashboardPage = () => {
         try {
             await api.put(`/api/admin/project-requests/${id}/reject-request`);
             toast.success('Request Rejected!');
-            queryClient.invalidateQueries(['adminProjectRequests']);
+            queryClient.invalidateQueries({ queryKey: ['adminProjectRequests'] });
         } catch(e) { toast.error("Failed to reject request."); } finally { setActionLoading({ type: null, id: null }); }
     };
 
@@ -136,8 +132,8 @@ export const AdminDashboardPage = () => {
         try {
             await api.put(`/api/admin/project-requests/${id}/${endpoint}`);
             toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} payment approved!`);
-            queryClient.invalidateQueries(['adminProjectRequests']);
-            queryClient.invalidateQueries(['adminStats']);
+            queryClient.invalidateQueries({ queryKey: ['adminProjectRequests'] });
+            queryClient.invalidateQueries({ queryKey: ['adminStats'] });
         } catch(e) { toast.error("Approval failed."); } finally { setActionLoading({ type: null, id: null }); }
     };
     
@@ -147,8 +143,8 @@ export const AdminDashboardPage = () => {
         try {
             await api.put(`/api/admin/project-requests/${id}/reject-payment`, { paymentType: type });
             toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} payment rejected!`);
-            queryClient.invalidateQueries(['adminProjectRequests']);
-            queryClient.invalidateQueries(['adminStats']);
+            queryClient.invalidateQueries({ queryKey: ['adminProjectRequests'] });
+            queryClient.invalidateQueries({ queryKey: ['adminStats'] });
         } catch(e) { toast.error("Rejection failed."); } finally { setActionLoading({ type: null, id: null }); }
     };
 
@@ -159,7 +155,6 @@ export const AdminDashboardPage = () => {
         queryClient.setQueryData(['services'], (old) => [added, ...old]);
     };
 
-    // Filter Logic Wrapper
     const getRenderData = (data) => {
         if (!searchQuery.trim()) return data;
         
@@ -180,38 +175,38 @@ export const AdminDashboardPage = () => {
       <>
         <SEO title="Admin Dashboard" description="Admin control panel." keywords="admin, dashboard" path={pathname}/>
         <div className="container mx-auto py-12 px-4 sm:px-6 lg:px-8 text-left">
-          <div className="flex flex-col md:flex-row justify-between items-center mb-6">
-            <div className="flex items-center gap-3 mb-4 md:mb-0">
+          <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+            <div className="flex items-center gap-3">
                 <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-                <div className="flex items-center gap-2 text-xs text-google-blue font-medium bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
-                    <FontAwesomeIcon icon={faBolt} /> Real-Time
+                <div className="flex items-center gap-2 text-xs text-google-blue font-medium bg-blue-50 px-3 py-1.5 rounded-full border border-blue-200">
+                    <FontAwesomeIcon icon={faBolt} className="animate-pulse" /> Real-Time
                 </div>
             </div>
             {view !== 'stats' && (
-                <div className="relative w-full md:w-64">
+                <div className="relative w-full md:w-72">
                     <input 
                         type="text" 
-                        placeholder="Search..." 
+                        placeholder={`Search ${view}...`}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-google-blue focus:outline-none"
                     />
-                    <FontAwesomeIcon icon={faSearch} className="absolute left-3 top-3 text-gray-400" />
+                    <FontAwesomeIcon icon={faSearch} className="absolute left-3 top-3.5 text-gray-400" />
                 </div>
             )}
           </div>
 
-          <div className="mb-6 border-b flex flex-wrap overflow-x-auto">
-            <button onClick={() => setView('stats')} className={`flex items-center gap-2 px-4 py-2 whitespace-nowrap transition-colors ${view === 'stats' ? 'border-b-2 border-google-blue text-google-blue' : 'text-gray-600 hover:text-gray-900'}`}><FontAwesomeIcon icon={faChartBar} /> Overview</button>
-            <button onClick={() => setView('projects')} className={`flex items-center gap-2 px-4 py-2 whitespace-nowrap transition-colors ${view === 'projects' ? 'border-b-2 border-google-blue text-google-blue' : 'text-gray-600 hover:text-gray-900'}`}><FontAwesomeIcon icon={faTools} /> Project Requests</button>
-            <button onClick={() => setView('orders')} className={`flex items-center gap-2 px-4 py-2 whitespace-nowrap transition-colors ${view === 'orders' ? 'border-b-2 border-google-blue text-google-blue' : 'text-gray-600 hover:text-gray-900'}`}><FontAwesomeIcon icon={faClipboardList} /> Std Payments</button>
-            <button onClick={() => setView('services')} className={`flex items-center gap-2 px-4 py-2 whitespace-nowrap transition-colors ${view === 'services' ? 'border-b-2 border-google-blue text-google-blue' : 'text-gray-600 hover:text-gray-900'}`}><FontAwesomeIcon icon={faLayerGroup} /> Services</button>
-            <button onClick={() => setView('articles')} className={`flex items-center gap-2 px-4 py-2 whitespace-nowrap transition-colors ${view === 'articles' ? 'border-b-2 border-google-blue text-google-blue' : 'text-gray-600 hover:text-gray-900'}`}><FontAwesomeIcon icon={faNewspaper} /> Articles</button>
-            <button onClick={() => setView('faqs')} className={`flex items-center gap-2 px-4 py-2 whitespace-nowrap transition-colors ${view === 'faqs' ? 'border-b-2 border-google-blue text-google-blue' : 'text-gray-600 hover:text-gray-900'}`}><FontAwesomeIcon icon={faQuestionCircle} /> FAQs</button>
-            <button onClick={() => setView('users')} className={`flex items-center gap-2 px-4 py-2 whitespace-nowrap transition-colors ${view === 'users' ? 'border-b-2 border-google-blue text-google-blue' : 'text-gray-600 hover:text-gray-900'}`}><FontAwesomeIcon icon={faUsers} /> Users</button>
+          <div className="mb-8 border-b border-gray-200 flex flex-nowrap overflow-x-auto pb-1 custom-scrollbar">
+            <button onClick={() => setView('stats')} className={`flex items-center gap-2 px-5 py-3 whitespace-nowrap transition-colors font-medium text-sm ${view === 'stats' ? 'border-b-2 border-google-blue text-google-blue' : 'text-gray-500 hover:text-gray-900'}`}><FontAwesomeIcon icon={faChartBar} /> Overview</button>
+            <button onClick={() => setView('projects')} className={`flex items-center gap-2 px-5 py-3 whitespace-nowrap transition-colors font-medium text-sm ${view === 'projects' ? 'border-b-2 border-google-blue text-google-blue' : 'text-gray-500 hover:text-gray-900'}`}><FontAwesomeIcon icon={faTools} /> Project Requests</button>
+            <button onClick={() => setView('orders')} className={`flex items-center gap-2 px-5 py-3 whitespace-nowrap transition-colors font-medium text-sm ${view === 'orders' ? 'border-b-2 border-google-blue text-google-blue' : 'text-gray-500 hover:text-gray-900'}`}><FontAwesomeIcon icon={faClipboardList} /> Standard Payments</button>
+            <button onClick={() => setView('services')} className={`flex items-center gap-2 px-5 py-3 whitespace-nowrap transition-colors font-medium text-sm ${view === 'services' ? 'border-b-2 border-google-blue text-google-blue' : 'text-gray-500 hover:text-gray-900'}`}><FontAwesomeIcon icon={faLayerGroup} /> Services</button>
+            <button onClick={() => setView('articles')} className={`flex items-center gap-2 px-5 py-3 whitespace-nowrap transition-colors font-medium text-sm ${view === 'articles' ? 'border-b-2 border-google-blue text-google-blue' : 'text-gray-500 hover:text-gray-900'}`}><FontAwesomeIcon icon={faNewspaper} /> Articles</button>
+            <button onClick={() => setView('faqs')} className={`flex items-center gap-2 px-5 py-3 whitespace-nowrap transition-colors font-medium text-sm ${view === 'faqs' ? 'border-b-2 border-google-blue text-google-blue' : 'text-gray-500 hover:text-gray-900'}`}><FontAwesomeIcon icon={faQuestionCircle} /> FAQs</button>
+            <button onClick={() => setView('users')} className={`flex items-center gap-2 px-5 py-3 whitespace-nowrap transition-colors font-medium text-sm ${view === 'users' ? 'border-b-2 border-google-blue text-google-blue' : 'text-gray-500 hover:text-gray-900'}`}><FontAwesomeIcon icon={faUsers} /> Users</button>
           </div>
 
-          <div className="min-h-[400px]">
+          <div className="min-h-[500px]">
             {view === 'stats' && <StatsView 
                 approveOrderMutation={approveOrderMutation} 
                 rejectOrderMutation={rejectOrderMutation}

@@ -18,7 +18,6 @@ import { faTimes, faBell } from '@fortawesome/free-solid-svg-icons';
 import { AnimatePresence, motion } from 'framer-motion';
 
 import { useAuth } from './context.jsx';
-import api from './services';
 
 import {
   LoginPage,
@@ -91,19 +90,20 @@ const AnimatedRoutes = () => {
 };
 
 function App() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
 
+  // ✅ FIX: Splash screen is directly bound to auth loading completion
   useEffect(() => {
-    const splash = document.getElementById('splash-screen');
-    if (splash) {
-      setTimeout(() => {
+    if (!loading) {
+      const splash = document.getElementById('splash-screen');
+      if (splash) {
         splash.classList.add('splash-fade-out');
         setTimeout(() => {
           splash.remove();
         }, 500);
-      }, 2000); 
+      }
     }
-  }, []);
+  }, [loading]);
   
   // Handle foreground notification messages
   useEffect(() => {

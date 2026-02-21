@@ -12,7 +12,7 @@ import { getSocket } from '../socket.js';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
-    faHistory, faSpinner, faFolderOpen, faShareNodes, faBell, faSignOutAlt, faUserShield, faTrashAlt, faExclamationTriangle, faSync, faBolt
+    faHistory, faSpinner, faFolderOpen, faShareNodes, faBell, faSignOutAlt, faUserShield, faTrashAlt, faBolt
 } from '@fortawesome/free-solid-svg-icons';
 import { faWhatsapp, faGoogle } from '@fortawesome/free-brands-svg-icons';
 import { LazyImage } from '../components/LazyImage';
@@ -179,7 +179,6 @@ const DashboardItem = React.memo(({ item, openContentModal }) => {
         }
     };
     
-    // ✅ FIX: Enhanced Share Handler to handle Custom Projects correctly
     const handleShare = async () => {
       const service = item.rawItem.service;
       
@@ -211,12 +210,10 @@ const DashboardItem = React.memo(({ item, openContentModal }) => {
       }
     };
 
-    // ✅ NEW: Handle Opening Modal for Custom Projects (Normalizing Data)
     const handleOpen = () => {
         if (item.type === 'standard') {
             openContentModal(item.rawItem.service);
         } else if (item.type === 'custom') {
-            // Transform Custom Project Deliverables to match ServiceContentModal format
             const modalData = {
                 ...item.rawItem.service,
                 contentUrls: item.rawItem.finalProjectContent || []
@@ -295,7 +292,7 @@ const DashboardItem = React.memo(({ item, openContentModal }) => {
                     
                     {item.type === 'custom' && (item.status === 'advance_pending' || item.status === 'final_payment_pending') && <p className="text-sm text-yellow-700 p-2 bg-yellow-100 rounded-md text-center">Verification Pending</p>}
                     
-                    {/* ✅ FIX: CUSTOM COMPLETED NOW HAS OPEN & SHARE BUTTONS */}
+                    {/* CUSTOM COMPLETED */}
                     {item.type === 'custom' && item.status === 'completed' && (
                         <>
                             <button onClick={handleOpen} className="px-3 py-1.5 text-sm bg-google-blue text-white rounded-md hover:bg-blue-700 flex items-center gap-2">
@@ -326,7 +323,7 @@ const PaymentSubmissionHistory = ({ requests, orders }) => {
             if (req.advance && req.advance.transactionId) {
                 history.push({
                     type: 'Advance',
-                    service: req.service.title,
+                    service: req.service?.title || 'Unknown',
                     amount: req.advance.amount,
                     transactionId: req.advance.transactionId,
                     status: req.advance.status || (req.status === 'advance_pending' ? 'pending' : 'unknown'),
@@ -336,7 +333,7 @@ const PaymentSubmissionHistory = ({ requests, orders }) => {
             if (req.fullPayment && req.fullPayment.transactionId) {
                 history.push({
                     type: 'Final',
-                    service: req.service.title,
+                    service: req.service?.title || 'Unknown',
                     amount: req.fullPayment.amount,
                     transactionId: req.fullPayment.transactionId,
                     status: req.fullPayment.status || (req.status === 'final_payment_pending' ? 'pending' : 'unknown'),
@@ -348,7 +345,7 @@ const PaymentSubmissionHistory = ({ requests, orders }) => {
         orders.forEach(order => {
             history.push({
                 type: 'Standard',
-                service: order.service?.title || 'Service',
+                service: order.service?.title || 'Unknown Service',
                 amount: order.amount,
                 transactionId: order.transactionId,
                 status: order.status,
@@ -376,18 +373,21 @@ const PaymentSubmissionHistory = ({ requests, orders }) => {
     return (
         <div className="space-y-3">
             {paymentHistory.map((payment, index) => (
-                <div key={index} className="bg-white p-3 rounded-lg shadow-sm border animate-fadeIn">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <p className="font-semibold">{payment.service}</p>
-                            <p className="text-sm text-gray-500">{payment.type} Payment: <span className="font-bold">₹{payment.amount}</span></p>
-                            <p className="text-xs text-gray-500">UTR: <span className="break-all font-mono">{payment.transactionId}</span></p>
+                <div key={index} className="bg-white p-3 rounded-lg shadow-sm border animate-fadeIn flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                    <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className={`capitalize px-2 py-0.5 text-[10px] font-bold rounded-sm ${getStatusBadge(payment.status)}`}>
+                                {payment.status === 'pending' ? 'Verification Pending' : payment.status}
+                            </span>
+                            <span className="text-xs text-gray-500 font-medium border px-1.5 rounded">{payment.type}</span>
                         </div>
-                        <span className={`capitalize px-2 py-1 text-xs font-medium rounded-full flex-shrink-0 ${getStatusBadge(payment.status)}`}>
-                            {payment.status === 'pending' ? 'Verification Pending' : payment.status}
-                        </span>
+                        <p className="font-semibold text-sm line-clamp-1">{payment.service}</p>
+                        <p className="text-xs text-gray-500 mt-1">UTR: <span className="font-mono bg-gray-50 px-1 rounded border">{payment.transactionId}</span></p>
                     </div>
-                    <p className="text-xs text-gray-400 mt-2 border-t pt-2">Submitted on: {new Date(payment.date).toLocaleString()}</p>
+                    <div className="sm:text-right flex flex-row sm:flex-col justify-between items-center sm:items-end w-full sm:w-auto mt-2 sm:mt-0 pt-2 sm:pt-0 border-t sm:border-t-0">
+                         <span className="font-bold text-lg text-gray-800">₹{payment.amount}</span>
+                         <p className="text-[10px] text-gray-400 font-medium">{new Date(payment.date).toLocaleString()}</p>
+                    </div>
                 </div>
             ))}
         </div>
@@ -400,15 +400,15 @@ export const UserDashboardPage = () => {
     const { pathname } = useLocation();
     const queryClient = useQueryClient();
     
-    // ✅ INTELLIGENT REAL-TIME: Removed polling. Added Socket listener.
+    // ✅ FIX: Strict socket listener management
     useEffect(() => {
         const socket = getSocket();
         
         const handleUpdate = () => {
             console.log("⚡ Real-time update received!");
             toast.success("Dashboard updated!", { id: 'live-update', duration: 2000, icon: '⚡' });
-            queryClient.invalidateQueries(['myOrders']);
-            queryClient.invalidateQueries(['myProjectRequests']);
+            queryClient.invalidateQueries({ queryKey: ['myOrders'] });
+            queryClient.invalidateQueries({ queryKey: ['myProjectRequests'] });
         };
 
         socket.on('order_updated', handleUpdate);
@@ -427,7 +427,7 @@ export const UserDashboardPage = () => {
             return data;
         },
         enabled: !!user,
-        staleTime: Infinity, // Rely on socket/invalidation
+        staleTime: Infinity, 
     });
 
     const { data: projectRequests = [], isLoading: requestsLoading } = useQuery({
@@ -437,7 +437,7 @@ export const UserDashboardPage = () => {
             return data;
         },
         enabled: !!user,
-        staleTime: Infinity, // Rely on socket/invalidation
+        staleTime: Infinity, 
     });
 
     const dataLoading = ordersLoading || requestsLoading;
@@ -454,8 +454,8 @@ export const UserDashboardPage = () => {
             id: req._id,
             type: 'custom',
             date: req.updatedAt,
-            title: req.service.title,
-            imageUrl: req.service.imageUrl,
+            title: req.service?.title || 'Unknown',
+            imageUrl: req.service?.imageUrl || '/logo.png',
             status: req.status,
             rawItem: req,
         }));
@@ -464,7 +464,7 @@ export const UserDashboardPage = () => {
             id: order._id,
             type: 'standard',
             date: order.updatedAt,
-            title: order.service?.title || 'Service not found',
+            title: order.service?.title || 'Unknown',
             imageUrl: order.service?.imageUrl || '/logo.png',
             status: order.status,
             rawItem: order,
@@ -479,45 +479,54 @@ export const UserDashboardPage = () => {
       <>
         <SEO title="Dashboard" description="Manage your account, services, and projects." keywords="dashboard, account, my services, my projects" path={pathname}/>
         <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8 text-left">
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-8 gap-4">
             <h1 className="text-3xl font-bold">Dashboard</h1>
-            <div className="flex items-center gap-2 text-xs text-google-green font-medium bg-green-50 px-3 py-1 rounded-full border border-green-200 animate-pulse">
-                <FontAwesomeIcon icon={faBolt} /> Live Connection Active
+            <div className="flex items-center w-fit gap-2 text-xs text-google-green font-medium bg-green-50 px-3 py-1.5 rounded-full border border-green-200">
+                <FontAwesomeIcon icon={faBolt} className="animate-pulse" /> Live Connection Active
             </div>
           </div>
 
-          {/* MY SERVICES & PROJECTS SECTION */}
-          <div className="mb-12">
-            <h2 className="text-2xl font-semibold mb-4 text-gray-700">My Services & Projects</h2>
-            <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* MY SERVICES & PROJECTS SECTION */}
+              <div className="lg:col-span-2">
+                <h2 className="text-xl font-semibold mb-4 text-gray-700">My Purchases</h2>
+                <div className="space-y-4">
+                    {dataLoading ? (
+                        Array.from({ length: 3 }).map((_, i) => <DashboardItemSkeleton key={i} />)
+                    ) : dashboardItems.length > 0 ? (
+                        dashboardItems.map(item => (
+                            <DashboardItem 
+                                key={`${item.type}-${item.id}`}
+                                item={item}
+                                openContentModal={openContentModal}
+                            />
+                        ))
+                    ) : (
+                        <div className="bg-white p-8 rounded-lg border border-dashed border-gray-300 text-center">
+                            <p className="text-gray-500 mb-4">You have not purchased any services or requested any projects yet.</p>
+                            <Link to="/services" className="inline-block px-6 py-2 bg-google-blue text-white rounded-md font-semibold hover:bg-blue-700 transition-colors shadow-sm">
+                                Explore Services
+                            </Link>
+                        </div>
+                    )}
+                </div>
+              </div>
+              
+              {/* PAYMENT HISTORY SECTION */}
+              <div className="lg:col-span-1">
+                <h2 className="text-xl font-semibold mb-4 text-gray-700 flex items-center gap-2">
+                  <FontAwesomeIcon icon={faHistory} className="text-gray-400" />
+                  Transactions
+                </h2>
                 {dataLoading ? (
-                    Array.from({ length: 3 }).map((_, i) => <DashboardItemSkeleton key={i} />)
-                ) : dashboardItems.length > 0 ? (
-                    dashboardItems.map(item => (
-                        <DashboardItem 
-                            key={`${item.type}-${item.id}`}
-                            item={item}
-                            openContentModal={openContentModal}
-                        />
-                    ))
-                ) : (
-                    <div className="bg-gray-50 p-6 rounded-lg border text-center">
-                        <p>You have not purchased any services or requested any projects yet.</p>
-                        <Link to="/services" className="inline-block mt-4 px-5 py-2 bg-google-blue text-white rounded-md hover:bg-blue-700 transition-colors">
-                            Explore Services
-                        </Link>
+                    <div className="space-y-3">
+                        <SkeletonPulse className="h-24 w-full rounded-lg" />
+                        <SkeletonPulse className="h-24 w-full rounded-lg" />
                     </div>
+                ) : (
+                    <PaymentSubmissionHistory requests={projectRequests} orders={orders} />
                 )}
-            </div>
-          </div>
-          
-          {/* PAYMENT HISTORY SECTION */}
-          <div>
-            <h2 className="text-2xl font-semibold mb-4 text-gray-700 flex items-center gap-3">
-              <FontAwesomeIcon icon={faHistory} />
-              Payment History
-            </h2>
-            {dataLoading ? <SkeletonPulse className="h-20 w-full" /> : <PaymentSubmissionHistory requests={projectRequests} orders={orders} />}
+              </div>
           </div>
 
         </div>
